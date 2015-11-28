@@ -8,6 +8,8 @@
   var prevMouseX = 0;
   var prevMouseY = 0;
 
+  var xhttp = new XMLHttpRequest();
+
   canvas.addEventListener('mousemove', function(e) {
     mousePos(e);
   }, false);
@@ -35,6 +37,13 @@
     ctx.lineTo(mouseX, mouseY);
     ctx.stroke();
     ctx.closePath();
+    sendToServer();
+  }
+
+  function sendToServer()
+  {
+    xhttp.open("POST", "/draw", true);
+    xhttp.send("" + mouseX + "," + mouseY);
   }
 
 }());
