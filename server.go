@@ -29,6 +29,7 @@ func main() {
 	fmt.Printf("Hello World\n")
 	http.Handle("/", http.FileServer(http.Dir("./public")))
 	http.HandleFunc("/draw", draw)
+	http.HandleFunc("/guess", guess)
 	http.HandleFunc("/join", join)
 	http.ListenAndServe(":7777", nil)
 }
@@ -47,7 +48,11 @@ func draw(w http.ResponseWriter, r * http.Request) {
 		// which game it belongs to
 		// what user is drawing
 		// what the user drew
-	fmt.Printf("draw recieved")
+	fmt.Printf("draw recieved\n")
+}
+
+func guess(w http.ResponseWriter, r * http.Request) {
+	fmt.Printf("guess rcvd\n")
 }
 
 func nextWord(g Game) {
