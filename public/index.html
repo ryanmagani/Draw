@@ -4,7 +4,11 @@
 	</head>
 	<body>
 		<p>Test Html</p>
-		<canvas></canvas>
+		<!--
+			Canvas must be set width/height as actual property, not style to
+			make drawing work well. So we do this here rather than in the JS
+		-->
+		<canvas width="400" height="400"></canvas>
 	</body>
 	<script src="draw.js"></script>
 </html>
