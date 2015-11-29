@@ -1,7 +1,10 @@
 (function()
 {
-  var canvas = document.getElementsByTagName('canvas')[0];
+  var canvas = document.getElementById('canvas');
   var ctx = canvas.getContext("2d");
+
+  var color = "black";
+  var saveColor = "black";
 
   var mouseX = 0;
   var mouseY = 0;
@@ -10,8 +13,11 @@
 
   var isDrawer = true;
 
-  var textbox = document.getElementsByTagName('input')[0];
-  var submitBtn = document.getElementsByTagName('input')[1];
+  var eraseCheck = document.getElementById('erase');
+  var clearBtn = document.getElementById('clearBtn');
+
+  var textbox = document.getElementById('guessText');
+  var guessBtn = document.getElementById('guessBtn');
 
   var xhttp = new XMLHttpRequest();
 
@@ -27,8 +33,16 @@
     canvas.removeEventListener('mousemove', draw, false);
   }, false);
 
-  submitBtn.addEventListener('click', function(e) {
+  clearBtn.addEventListener('click', function(e) {
+    clear();
+  });
+
+  guessBtn.addEventListener('click', function(e) {
     guess();
+  });
+
+  eraseCheck.addEventListener('click', function(e) {
+    toggleEraser();
   });
 
   var mousePos = function(e)
@@ -44,12 +58,32 @@
     if (!isDrawer)
       return;
 
+    ctx.strokeStyle = color;
     ctx.beginPath();
     ctx.moveTo(prevMouseX, prevMouseY)
     ctx.lineTo(mouseX, mouseY);
     ctx.stroke();
     ctx.closePath();
-    sendToServer("/draw", "" + mouseX + "," + mouseY);
+    sendToServer("/draw", "" + mouseX + "," + mouseY + "," + color);
+  }
+
+  function toggleEraser()
+  {
+    if (eraseCheck.checked)
+    {
+      saveColor = color;
+      color = "white";
+    }
+
+    else
+    {
+      color = saveColor;
+    }
+  }
+
+  function clear()
+  {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
   }
 
   var guess = function()

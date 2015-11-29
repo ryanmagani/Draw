@@ -8,9 +8,11 @@
 			Canvas must be set width/height as actual property, not style to
 			make drawing work well. So we do this here rather than in the JS
 		-->
-		<canvas width="400" height="400"></canvas>
-		<input type="text" placeholder="guess">
-		<input type="submit">
+		<canvas id="canvas" width="400" height="400"></canvas>
+		<label for="erase">Erase</label><input id="erase" type="checkbox">
+		<button id="clearBtn" type="button">Clear</button>
+		<input id="guessText" type="text" placeholder="guess">
+		<button id="guessBtn" type="button">Guess</button>
 	</body>
 	<script src="draw.js"></script>
 </html>
