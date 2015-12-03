@@ -13,7 +13,7 @@
 		var prevMouseX = 0;
 		var prevMouseY = 0;
 
-		var isDrawer = false;
+		var isDrawer = true;
 
 		var eraseCheck = document.getElementById('erase');
 		var clearBtn = document.getElementById('clearBtn');
