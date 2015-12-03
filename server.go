@@ -31,6 +31,7 @@ func main() {
 	http.HandleFunc("/draw", draw)
 	http.HandleFunc("/guess", guess)
 	http.HandleFunc("/join", join)
+	http.HandleFunc("/quit", quit)
 	http.ListenAndServe(":7777", nil)
 }
 
@@ -41,6 +42,14 @@ func NewGame() {
 	g := Game{"newGame", []int{}, 0, &sync.Mutex{}}
 	GM.games = append(GM.games, g)
 	// somehow spin off a thread for this game
+}
+
+func nextWord(g Game) {
+	g.Lock()
+	defer g.Unlock()
+	g.drawer++
+	g.drawer = g.drawer % len(g.clients)
+	g.word = "new"
 }
 
 func draw(w http.ResponseWriter, r * http.Request) {
@@ -55,14 +64,6 @@ func guess(w http.ResponseWriter, r * http.Request) {
 	fmt.Printf("guess rcvd\n")
 }
 
-func nextWord(g Game) {
-	g.Lock()
-	defer g.Unlock()
-	g.drawer++
-	g.drawer = g.drawer % len(g.clients)
-	g.word = "new"
-}
-
 func join(w http.ResponseWriter, r * http.Request) {
 	// parse the request looking for:
 		// which game the user wants to join
@@ -71,6 +72,11 @@ func join(w http.ResponseWriter, r * http.Request) {
 	GM.games[0].Lock() // CHANGE THIS FROM 0
 	defer GM.games[0].Unlock()
 	GM.games[0].clients = append(GM.games[0].clients, c)
+}
+
+func quit(w http.ResponseWriter, r * http.Request) {
+	// getguid
+	// GM.games[].c
 }
 
 // func guess(w http.ResponseWriter, r * http.Request) {

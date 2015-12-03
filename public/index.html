@@ -3,16 +3,23 @@
 		<link rel="stylesheet" type="text/css" href="index.css">
 	</head>
 	<body>
-		<p>Test Html</p>
+		<h3>PICTIONARY </h3>
 		<!--
 			Canvas must be set width/height as actual property, not style to
 			make drawing work well. So we do this here rather than in the JS
 		-->
-		<canvas id="canvas" width="400" height="400"></canvas>
-		<label for="erase">Erase</label><input id="erase" type="checkbox">
-		<button id="clearBtn" type="button">Clear</button>
-		<input id="guessText" type="text" placeholder="guess">
-		<button id="guessBtn" type="button">Guess</button>
+		<div>
+			<canvas id="canvas" width="400" height="400"></canvas>
+		</div>
+		<br/>
+		<div id="drawerView">
+			<label for="erase">Erase</label><input id="erase" type="checkbox">
+			<button id="clearBtn" type="button">Clear</button>
+		</div>
+		<div id="guesserView">
+			<input id="guessText" type="text" placeholder="guess">
+			<button id="guessBtn" type="button">Guess</button>
+		</div>
 	</body>
 	<script src="draw.js"></script>
 </html>
