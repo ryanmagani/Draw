@@ -13,7 +13,7 @@
 		var prevMouseX = 0;
 		var prevMouseY = 0;
 
-		var isDrawer = true;
+		var isDrawer = false;
 
 		var eraseCheck = document.getElementById('erase');
 		var clearBtn = document.getElementById('clearBtn');
@@ -22,6 +22,16 @@
 		var guessBtn = document.getElementById('guessBtn');
 
 		var xhttp = new XMLHttpRequest();
+
+		var ws = new WebSocket("ws://localhost:7777/join");
+
+		var read = function(event)
+		{
+			isDrawer = JSON.parse(event.data);
+		}
+
+		ws.onmessage = read;
+
 
 		window.addEventListener('beforeunload', function (e) {
 			quit();

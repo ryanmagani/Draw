@@ -45,12 +45,12 @@ func main() {
 	http.Handle("/", http.FileServer(http.Dir("./public")))
 	http.HandleFunc("/draw", draw)
 	http.HandleFunc("/guess", guess)
-	http.HandleFunc("/join", join)
+	http.Handle("/join", websocket.Handler(join))
 	http.HandleFunc("/quit", quit)
 	http.ListenAndServe(":7777", nil)
 }
 
-func NewGame() {
+func newGame() {
 	GM.Lock()
 	// defer statements called after function finishes
 	defer GM.Unlock()
@@ -80,14 +80,27 @@ func guess(w http.ResponseWriter, r * http.Request) {
 	fmt.Printf("guess rcvd\n")
 }
 
-func join(w http.ResponseWriter, r * http.Request) {
+func join(ws *websocket.Conn) {
 	// parse the request looking for:
 		// which game the user wants to join
 		// what user is trying to join
 	//c := null
+	if (len(GM.games) == 0) {
+		newGame()
+	}
+
 	GM.games[0].Lock() // CHANGE THIS FROM 0
 	defer GM.games[0].Unlock()
-	//GM.games[0].clients = append(GM.games[0].clients, c)
+
+	isDrawer := false
+	if (len(GM.games[0].clients) == GM.games[0].drawerIndex) {
+		isDrawer = true
+	}
+
+	websocket.JSON.Send(ws, isDrawer)
+
+	newClient := &Client{ws, isDrawer}
+	GM.games[0].clients = append(GM.games[0].clients, newClient)
 }
 
 func quit(w http.ResponseWriter, r * http.Request) {
