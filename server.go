@@ -81,6 +81,14 @@ func handleSocketIn(ws *websocket.Conn) {
 	// store their information in the game
 	// return a piece of information regarding whether or not they are drawing
 	join(ws)
+	readIn(ws)
+}
+
+func readIn(ws *websocket.Conn) {
+	var pkt Packet
+	for {
+		websocket.JSON.Receive(ws, &pkt)
+	}
 }
 
 func draw(w http.ResponseWriter, r * http.Request) {
