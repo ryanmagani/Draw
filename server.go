@@ -8,16 +8,19 @@ import (
 	"sync"
 )
 
+// Golang will NOT send out data whose
+// var name is uncapitalized...
 type Packet struct {
-	x int `json:"x"`
-	y int `json:"y"`
-	color string `json:"c"`
+	Ptype string `json:"t"`
+	Board []int `json:"x"`
+	Color string `json:"c"`
+	IsDrawer bool `json:"d"`
 }
 
 type Client struct {
 	ws *websocket.Conn
-
 	isDrawer bool
+	score int
 }
 
 type Game struct {
@@ -41,12 +44,13 @@ var GM GameManager;
 
 func main() {
 	GM = GameManager{make([]*Game, 0), &sync.Mutex{}}
+	newGame()
 	fmt.Printf("Hello World\n")
 	http.Handle("/", http.FileServer(http.Dir("./public")))
-	http.HandleFunc("/draw", draw)
-	http.HandleFunc("/guess", guess)
-	http.Handle("/join", websocket.Handler(join))
-	http.HandleFunc("/quit", quit)
+	// http.HandleFunc("/draw", draw)
+	// http.HandleFunc("/guess", guess)
+	http.Handle("/socket", websocket.Handler(handleSocketIn))
+	// http.HandleFunc("/quit", quit)
 	http.ListenAndServe(":7777", nil)
 }
 
@@ -54,7 +58,12 @@ func newGame() {
 	GM.Lock()
 	// defer statements called after function finishes
 	defer GM.Unlock()
-	g := &Game{"newGame", make([]*Client, 0), make(chan *Client), 0, [400][400]int{}, &sync.Mutex{}}
+	g := &Game{"newGame",
+				make([]*Client, 0),
+				make(chan *Client),
+				0, [400][400]int{},
+				&sync.Mutex{}}
+
 	GM.games = append(GM.games, g)
 	// somehow spin off a thread for this game
 }
@@ -65,6 +74,13 @@ func nextWord(g Game) {
 	g.drawerIndex++
 	g.drawerIndex = g.drawerIndex % len(g.clients)
 	g.word = "new"
+}
+
+func handleSocketIn(ws *websocket.Conn) {
+	// setup connection with new user
+	// store their information in the game
+	// return a piece of information regarding whether or not they are drawing
+	join(ws)
 }
 
 func draw(w http.ResponseWriter, r * http.Request) {
@@ -78,6 +94,10 @@ func draw(w http.ResponseWriter, r * http.Request) {
 
 func guess(w http.ResponseWriter, r * http.Request) {
 	fmt.Printf("guess rcvd\n")
+}
+
+func getBoard(g *Game) []int {
+	return nil
 }
 
 func join(ws *websocket.Conn) {
@@ -97,9 +117,14 @@ func join(ws *websocket.Conn) {
 		isDrawer = true
 	}
 
-	websocket.JSON.Send(ws, isDrawer)
+	pkt := Packet{"init",
+				getBoard(GM.games[0]),
+				"",
+				isDrawer}
 
-	newClient := &Client{ws, isDrawer}
+	websocket.JSON.Send(ws, pkt)
+
+	newClient := &Client{ws, isDrawer, 0}
 	GM.games[0].clients = append(GM.games[0].clients, newClient)
 }
 
@@ -107,6 +132,3 @@ func quit(w http.ResponseWriter, r * http.Request) {
 	// getguid
 	// GM.games[].c
 }
-
-// func guess(w http.ResponseWriter, r * http.Request) {
-// }

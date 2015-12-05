@@ -21,14 +21,17 @@
 		var textbox = document.getElementById('guessText');
 		var guessBtn = document.getElementById('guessBtn');
 
-		var xhttp = new XMLHttpRequest();
-
-		var ws = new WebSocket("ws://localhost:7777/join");
+		var ws = new WebSocket("ws://localhost:7777/socket");
 
 		var read = function(event)
 		{
-			isDrawer = JSON.parse(event.data);
+			isDrawer = JSON.parse(event.data).d;
 		}
+
+		// start two intervals:
+		// every 10 ms:
+			// if drawer: send entire drawed range
+			// for both: read godpacket from server
 
 		ws.onmessage = read;
 
@@ -85,7 +88,7 @@
 				ctx.lineTo(mouseX, mouseY);
 			ctx.stroke();
 			ctx.closePath();
-			sendToServer("/draw", "" + mouseX + "," + mouseY + "," + color);
+			sendToServer("" + mouseX + "," + mouseY + "," + color);
 		}
 
 		function toggleEraser()
@@ -109,7 +112,7 @@
 
 		function quit()
 		{
-			sendToServer("/quit", "1");
+			sendToServer("quit");
 		}
 
 		var guess = function()
@@ -117,13 +120,12 @@
 			// if (isDrawer)
 				//   return;
 
-			sendToServer("/guess", textbox.value);
+			sendToServer(textbox.value);
 		}
 
-		function sendToServer(url, data)
+		function sendToServer(data)
 		{
-			xhttp.open("POST", url, true);
-			xhttp.send(data);
+			ws.send(data);
 		}
 
 	}());
