@@ -25,7 +25,7 @@
 
 		var read = function(event)
 		{
-			isDrawer = JSON.parse(event.data).isDrawer;
+			isDrawer = JSON.parse(event.data).IsDrawer;
 			console.log(event.data);
 		}
 
@@ -36,6 +36,30 @@
 
 		ws.onmessage = read;
 
+		var drawnPoints = [];
+
+		setInterval(function()
+		{
+			if (isDrawer)
+			{
+				flush();
+			}
+		}, 200);
+
+		function flush()
+		{
+			if (drawnPoints.length == 0)
+			{
+				return;
+			}
+
+			var packet = {};
+			packet.Board = drawnPoints;
+			packet.Color = color;
+			console.log(JSON.stringify(packet));
+			sendToServer(JSON.stringify(packet));
+			drawnPoints = [];
+		}
 
 		window.addEventListener('beforeunload', function (e) {
 			quit();
@@ -89,12 +113,15 @@
 				ctx.lineTo(mouseX, mouseY);
 			ctx.stroke();
 			ctx.closePath();
-			var location =	{'x' : mouseX, 'y' : mouseY} // , 'c': color} DO THIS LATER
-			sendToServer(JSON.stringify(location));
+			var location =	{'X' : mouseX, 'Y' : mouseY} // , 'c': color} DO THIS LATER
+			// sendToServer(JSON.stringify(location));
+			drawnPoints.push(location);
 		}
 
 		function toggleEraser()
 		{
+			flush();
+
 			if (eraseCheck.checked)
 			{
 				saveColor = color;

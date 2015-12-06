@@ -10,8 +10,6 @@ import (
 
 const BOARD_SIZE = 400
 
-
-
 type Point struct {
 	X int `json:"x"`
 	Y int `json:"y"`
@@ -20,10 +18,10 @@ type Point struct {
 // Golang will NOT send out data whose
 // var name is uncapitalized...
 type Packet struct {
-	Ptype string `json:"type"`
-	Board []Point `json:"points"`
-	Color string `json:"color"`
-	IsDrawer bool `json:"isDrawer"`
+	Ptype string `json:"Type"`
+	Board []Point `json:"Board"`
+	Color string `json:"Color"`
+	IsDrawer bool `json:"IsDrawer"`
 }
 
 type Client struct {
@@ -88,12 +86,12 @@ func handleSocketIn(ws *websocket.Conn) {
 
 func handleDrawer(currClient *Client) {
 //	var pkt Packet
-	input := make(chan Point, 1)
+	input := make(chan Packet, 1)
 	go func() {
-		var point Point
+		var packet Packet
 		for {
-			websocket.JSON.Receive(currClient.ws, &point)
-			input<-point
+			websocket.JSON.Receive(currClient.ws, &packet)
+			input<-packet
 		}
 	}()
 
@@ -120,14 +118,21 @@ func handleDrawer(currClient *Client) {
 			}
 			game.Unlock()
 
-		case pnt := <-input:
+		case packet := <-input:
 		// case websocket.JSON.Receive(currClient.ws, &point):
 			//			drawnPoints := Packet{}
 			
-			
-			fmt.Println("x: ", pnt.X, "y: ", pnt.Y)
+			fmt.Println("clr: ", packet.Color)
+			fmt.Println("arr: ", packet.Board)
+			// fmt.Println("x: ", packet.X, "y: ", packet.Y)
 			game.Lock()
-			game.canvas[pnt.X][pnt.Y] = 1
+			colorVal := 1
+			if packet.Color == "white" {
+				colorVal = 0
+			}
+			for i:= 0; i < len(packet.Board); i++ {
+				game.canvas[packet.Board[i].X][packet.Board[i].Y] = colorVal
+			}
 			game.Unlock()
 		}
 	}
