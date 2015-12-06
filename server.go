@@ -8,43 +8,55 @@ import (
 	"sync"
 )
 
+const BOARD_SIZE = 400
+
+
+
+type Point struct {
+	X int `json:"x"`
+	Y int `json:"y"`
+}
+
 // Golang will NOT send out data whose
 // var name is uncapitalized...
 type Packet struct {
-	Ptype string `json:"t"`
-	Board []int `json:"x"`
-	Color string `json:"c"`
-	IsDrawer bool `json:"d"`
+	Ptype string `json:"type"`
+	Board []Point `json:"points"`
+	Color string `json:"color"`
+	IsDrawer bool `json:"isDrawer"`
 }
 
 type Client struct {
+	_id  uint64
 	ws *websocket.Conn
 	isDrawer bool
 	score int
 }
 
 type Game struct {
+	maxId uint64
 	word string
 	clients []*Client
-	cliChan chan *Client
+	guessCorrect chan bool
 	drawerIndex int
-	canvas [400][400]int
+	canvas [BOARD_SIZE][BOARD_SIZE]int
 	// num clients is len(g.clients) where g is some Game
 	// initialize with g := Game{"stringlit", []int{int, lits, 3}}
 	*sync.Mutex // apparently this is initialized with "&sync.Mutex{}"
 				// which gives a unique lock each time...
 }
 
-type GameManager struct {
-	games []*Game;
-	*sync.Mutex
-}
-
-var GM GameManager;
+var game Game;
 
 func main() {
-	GM = GameManager{make([]*Game, 0), &sync.Mutex{}}
-	newGame()
+	game = Game {0,
+		"newGame",
+		make([]*Client, 0),
+		make(chan bool, 1),
+		0,
+		[BOARD_SIZE][BOARD_SIZE]int{},
+		&sync.Mutex{}}
+
 	fmt.Printf("Hello World\n")
 	http.Handle("/", http.FileServer(http.Dir("./public")))
 	// http.HandleFunc("/draw", draw)
@@ -54,41 +66,74 @@ func main() {
 	http.ListenAndServe(":7777", nil)
 }
 
-func newGame() {
-	GM.Lock()
-	// defer statements called after function finishes
-	defer GM.Unlock()
-	g := &Game{"newGame",
-				make([]*Client, 0),
-				make(chan *Client),
-				0, [400][400]int{},
-				&sync.Mutex{}}
-
-	GM.games = append(GM.games, g)
-	// somehow spin off a thread for this game
-}
-
-func nextWord(g Game) {
-	g.Lock()
-	defer g.Unlock()
-	g.drawerIndex++
-	g.drawerIndex = g.drawerIndex % len(g.clients)
-	g.word = "new"
+func nextWord() {
+	game.Lock()
+	defer game.Unlock()
+	game.drawerIndex++
+	game.drawerIndex = game.drawerIndex % len(game.clients)
+	game.word = "new"
 }
 
 func handleSocketIn(ws *websocket.Conn) {
 	// setup connection with new user
 	// store their information in the game
 	// return a piece of information regarding whether or not they are drawing
-	join(ws)
-	readIn(ws)
+	currClient := join(ws)
+	if currClient.isDrawer {
+		handleDrawer(currClient)
+	} else {
+		handleGuesser(currClient)
+	}
 }
 
-func readIn(ws *websocket.Conn) {
-	var pkt Packet
+func handleDrawer(currClient *Client) {
+//	var pkt Packet
 	for {
-		websocket.JSON.Receive(ws, &pkt)
+		select {
+
+		case <-game.guessCorrect:
+			fmt.Println("I'm is hard")
+
+		default:
+			//websocket.JSON.Receive(currClient.ws, &pkt)
+		}
 	}
+}
+
+func handleGuesser(currClient *Client) {
+	var guess string
+	for {
+		select {
+
+		case <-game.guessCorrect:
+			fmt.Println("guesser is hard")
+
+		default:
+			websocket.JSON.Receive(currClient.ws, &guess)
+			if game.word == guess {
+				// guessed correctly, switch ourselves with drawer
+				game.Lock()
+				currDrawer := game.clients[game.drawerIndex]
+
+				// find our current index
+				i := 0
+
+				for ; game.clients[i]._id != currClient._id; i++ { }
+
+				// set drawer index to our index
+				game.drawerIndex = i
+				game.guessCorrect <- true
+
+				// set ourselves to old drawer
+				currClient = currDrawer
+
+				game.Unlock()
+			} else {
+				// client guessed wrong
+			}
+		}
+	}
+
 }
 
 func draw(w http.ResponseWriter, r * http.Request) {
@@ -104,36 +149,50 @@ func guess(w http.ResponseWriter, r * http.Request) {
 	fmt.Printf("guess rcvd\n")
 }
 
-func getBoard(g *Game) []int {
-	return nil
+func getBoard() []Point {
+	drawnPoints := make([]Point, 0)
+	for i := 0; i < BOARD_SIZE; i++ {
+		for j := 0; j < BOARD_SIZE; j++ {
+			if game.canvas[i][j] == 1 {
+				drawnPoints = append(drawnPoints, Point{i,j})
+			}
+		}
+	}
+	return drawnPoints
 }
 
-func join(ws *websocket.Conn) {
+func join(ws *websocket.Conn) *Client {
 	// parse the request looking for:
 		// which game the user wants to join
 		// what user is trying to join
 	//c := null
-	if (len(GM.games) == 0) {
-		newGame()
-	}
 
-	GM.games[0].Lock() // CHANGE THIS FROM 0
-	defer GM.games[0].Unlock()
+	game.Lock()
+	defer game.Unlock()
 
 	isDrawer := false
-	if (len(GM.games[0].clients) == GM.games[0].drawerIndex) {
+	if (len(game.clients) == 0) {
 		isDrawer = true
 	}
 
-	pkt := Packet{"init",
-				getBoard(GM.games[0]),
-				"",
-				isDrawer}
 
+	pkt := Packet{"init",
+		getBoard(),
+		"",
+		isDrawer}
+
+/*	drawnPoints := make([]Point, 2)
+	drawnPoints[0] = Point{1,1}
+	drawnPoints[1] = Point{2,2}*/
 	websocket.JSON.Send(ws, pkt)
 
-	newClient := &Client{ws, isDrawer, 0}
-	GM.games[0].clients = append(GM.games[0].clients, newClient)
+	newClient := &Client{game.maxId, ws, isDrawer, 0}
+
+	// increment maxId
+	game.maxId++
+
+	game.clients = append(game.clients, newClient)
+	return newClient;
 }
 
 func quit(w http.ResponseWriter, r * http.Request) {

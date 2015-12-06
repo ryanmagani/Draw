@@ -25,7 +25,8 @@
 
 		var read = function(event)
 		{
-			isDrawer = JSON.parse(event.data).d;
+			isDrawer = JSON.parse(event.data).isDrawer;
+			console.log(event.data);
 		}
 
 		// start two intervals:
@@ -113,6 +114,7 @@
 		function quit()
 		{
 			sendToServer("quit");
+			ws.close();
 		}
 
 		var guess = function()
@@ -120,7 +122,7 @@
 			// if (isDrawer)
 				//   return;
 
-			sendToServer(textbox.value);
+			sendToServer(JSON.stringify(textbox.value));
 		}
 
 		function sendToServer(data)
