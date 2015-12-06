@@ -88,6 +88,15 @@ func handleSocketIn(ws *websocket.Conn) {
 
 func handleDrawer(currClient *Client) {
 //	var pkt Packet
+	input := make(chan Point, 1)
+	go func() {
+		var point Point
+		for {
+			websocket.JSON.Receive(currClient.ws, &point)
+			input<-point
+		}
+	}()
+
 	for {
 		select {
 
@@ -110,13 +119,15 @@ func handleDrawer(currClient *Client) {
 
 			}
 			game.Unlock()
-		default:
+
+		case pnt := <-input:
+		// case websocket.JSON.Receive(currClient.ws, &point):
 			//			drawnPoints := Packet{}
-			var point Point
-			websocket.JSON.Receive(currClient.ws, &point)
-			fmt.Println("x: ", point.X, "y: ", point.Y)
+			
+			
+			fmt.Println("x: ", pnt.X, "y: ", pnt.Y)
 			game.Lock()
-			game.canvas[point.X][point.Y] = 1
+			game.canvas[pnt.X][pnt.Y] = 1
 			game.Unlock()
 		}
 	}
