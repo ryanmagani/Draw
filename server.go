@@ -32,20 +32,21 @@ type Client struct {
 }
 
 type Game struct {
+	// most recently assigned client ID
 	maxId uint64
+	// current word to guess
 	word string
 	clients []*Client
 	guessCorrect chan bool
 	drawerIndex int
 	canvas [BOARD_SIZE][BOARD_SIZE]int
-	// num clients is len(g.clients) where g is some Game
-	// initialize with g := Game{"stringlit", []int{int, lits, 3}}
-	*sync.Mutex // apparently this is initialized with "&sync.Mutex{}"
-				// which gives a unique lock each time...
+	*sync.Mutex
 }
 
+// Single game per server
 var game Game;
 
+// Setup the game and file serving
 func main() {
 	game = Game {0,
 		"newGame",
@@ -55,12 +56,9 @@ func main() {
 		[BOARD_SIZE][BOARD_SIZE]int{},
 		&sync.Mutex{}}
 
-	fmt.Printf("Hello World\n")
+	fmt.Println("Game Started on port 7777")
 	http.Handle("/", http.FileServer(http.Dir("./public")))
-	// http.HandleFunc("/draw", draw)
-	// http.HandleFunc("/guess", guess)
 	http.Handle("/socket", websocket.Handler(handleSocketIn))
-	// http.HandleFunc("/quit", quit)
 	http.ListenAndServe(":7777", nil)
 }
 
@@ -85,7 +83,6 @@ func handleSocketIn(ws *websocket.Conn) {
 }
 
 func handleDrawer(currClient *Client) {
-//	var pkt Packet
 	input := make(chan Packet, 1)
 	go func() {
 		var packet Packet
@@ -118,13 +115,10 @@ func handleDrawer(currClient *Client) {
 			}
 			game.Unlock()
 
-		case packet := <-input:
-		// case websocket.JSON.Receive(currClient.ws, &point):
-			//			drawnPoints := Packet{}
-			
+		case packet := <-input:			
 			fmt.Println("clr: ", packet.Color)
 			fmt.Println("arr: ", packet.Board)
-			// fmt.Println("x: ", packet.X, "y: ", packet.Y)
+
 			game.Lock()
 			colorVal := 1
 			if packet.Color == "white" {
