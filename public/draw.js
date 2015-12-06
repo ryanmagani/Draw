@@ -89,7 +89,8 @@
 				ctx.lineTo(mouseX, mouseY);
 			ctx.stroke();
 			ctx.closePath();
-			sendToServer("" + mouseX + "," + mouseY + "," + color);
+			var location =	{'x' : mouseX, 'y' : mouseY} // , 'c': color} DO THIS LATER
+			sendToServer(JSON.stringify(location));
 		}
 
 		function toggleEraser()

@@ -92,10 +92,32 @@ func handleDrawer(currClient *Client) {
 		select {
 
 		case <-game.guessCorrect:
-			fmt.Println("I'm is hard")
+			game.Lock()
+			fmt.Println("I'm hard")
+			pkt := Packet{"nextWord",
+				nil,
+				"",
+				false}
 
+			for i := 0; i < len(game.clients); i++ {
+				if (i == game.drawerIndex) {
+					currClient = game.clients[i]
+					pkt.IsDrawer = true
+				} else {
+					pkt.IsDrawer = false
+				}
+				websocket.JSON.Send(game.clients[i].ws, pkt)
+
+			}
+			game.Unlock()
 		default:
-			//websocket.JSON.Receive(currClient.ws, &pkt)
+			//			drawnPoints := Packet{}
+			var point Point
+			websocket.JSON.Receive(currClient.ws, &point)
+			fmt.Println("x: ", point.X, "y: ", point.Y)
+			game.Lock()
+			game.canvas[point.X][point.Y] = 1
+			game.Unlock()
 		}
 	}
 }
@@ -103,34 +125,29 @@ func handleDrawer(currClient *Client) {
 func handleGuesser(currClient *Client) {
 	var guess string
 	for {
-		select {
+		websocket.JSON.Receive(currClient.ws, &guess)
+		if game.word == guess {
+			// guessed correctly, switch ourselves with drawer
+			game.Lock()
+			currDrawer := game.clients[game.drawerIndex]
 
-		case <-game.guessCorrect:
-			fmt.Println("guesser is hard")
+			// find our current index
+			i := 0
 
-		default:
-			websocket.JSON.Receive(currClient.ws, &guess)
-			if game.word == guess {
-				// guessed correctly, switch ourselves with drawer
-				game.Lock()
-				currDrawer := game.clients[game.drawerIndex]
+			for ; game.clients[i]._id != currClient._id; i++ { }
 
-				// find our current index
-				i := 0
+			// set drawer index to our index
+			game.drawerIndex = i
+			game.guessCorrect <- true
 
-				for ; game.clients[i]._id != currClient._id; i++ { }
+			// set ourselves to old drawer
+			currClient = currDrawer
 
-				// set drawer index to our index
-				game.drawerIndex = i
-				game.guessCorrect <- true
+			game.canvas = [BOARD_SIZE][BOARD_SIZE]int{}
 
-				// set ourselves to old drawer
-				currClient = currDrawer
-
-				game.Unlock()
-			} else {
-				// client guessed wrong
-			}
+			game.Unlock()
+		} else {
+			// client guessed wrong
 		}
 	}
 
