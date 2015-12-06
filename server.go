@@ -130,9 +130,17 @@ func handleDrawer(currClient *Client) {
 			if packet.Color == "white" {
 				colorVal = 0
 			}
-			for i:= 0; i < len(packet.Board); i++ {
+
+			for i := 0; i < len(packet.Board); i++ {
 				game.canvas[packet.Board[i].X][packet.Board[i].Y] = colorVal
 			}
+
+			for i := 0; i < len(game.clients); i++ {
+				if i != game.drawerIndex {
+					websocket.JSON.Send(game.clients[i].ws, packet)
+				}
+			}
+
 			game.Unlock()
 		}
 	}

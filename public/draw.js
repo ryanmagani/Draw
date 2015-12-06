@@ -25,8 +25,27 @@
 
 		var read = function(event)
 		{
-			isDrawer = JSON.parse(event.data).IsDrawer;
-			console.log(event.data);
+			var parsed = JSON.parse(event.data);
+			isDrawer = parsed.IsDrawer;
+			console.log(parsed);
+
+			if (!isDrawer)
+			{
+				saveColor = color;
+				color = parsed.Color;
+				for (var i = 1; i < parsed.Board.length; i++)
+				{
+					// console.log("draw at: " + parsed.Board[i].x + " " +  parsed.Board[i].y);
+					// ctx.fillRect(parsed.Board[i].x, parsed.Board[i].y, 1, 1);
+					ctx.strokeStyle = color;
+					ctx.beginPath();
+					ctx.moveTo(parsed.Board[i-1].x, parsed.Board[i-1].y)
+					ctx.lineTo(parsed.Board[i].x, parsed.Board[i].y);
+					ctx.stroke();
+					ctx.closePath();
+				}
+				color = saveColor;
+			}
 		}
 
 		// start two intervals:
