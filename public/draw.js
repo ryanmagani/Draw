@@ -84,7 +84,6 @@
 			drawnPoints = [];
 		}
 
-
 		function toggleEraser()
 		{
 			flush();
@@ -122,7 +121,7 @@
 			isDrawer = parsed.IsDrawer;
 			console.log(parsed);
 
-			if (!isDrawer && parsed.Board.length != 0)
+			if (!isDrawer && parsed.Board != null && parsed.Board.length != 0)
 			{
 				saveColor = color;
 				color = parsed.Color;
@@ -177,6 +176,13 @@
 		canvas.addEventListener('mouseup', function(e) {
 			canvas.removeEventListener('mousemove', draw, false);
 		}, false);
+
+		textbox.addEventListener('keypress', function(e) {
+			if (e.keyCode === 13) {
+				guess();
+				textbox.value = '';
+			}
+		});
 
 		clearBtn.addEventListener('click', function(e) {
 			clear();
