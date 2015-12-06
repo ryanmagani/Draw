@@ -1,13 +1,15 @@
 (function()
 	{
-		// client identifier
-//		var guid = getId();
 		var canvas = document.getElementById('canvas');
 		var ctx = canvas.getContext("2d");
 
 		var color = "black";
 		var saveColor = "black";
 
+		// buffer for drawn points to send to server
+		var drawnPoints = [];
+
+		// locations of draw
 		var mouseX = 0;
 		var mouseY = 0;
 		var prevMouseX = 0;
@@ -23,40 +25,23 @@
 
 		var ws = new WebSocket("ws://localhost:7777/socket");
 
-		var read = function(event)
-		{
-			var parsed = JSON.parse(event.data);
-			isDrawer = parsed.IsDrawer;
-			console.log(parsed);
 
-			if (!isDrawer)
-			{
-				saveColor = color;
-				color = parsed.Color;
-				for (var i = 1; i < parsed.Board.length; i++)
-				{
-					// console.log("draw at: " + parsed.Board[i].x + " " +  parsed.Board[i].y);
-					// ctx.fillRect(parsed.Board[i].x, parsed.Board[i].y, 1, 1);
-					ctx.strokeStyle = color;
-					ctx.beginPath();
-					ctx.moveTo(parsed.Board[i-1].x, parsed.Board[i-1].y)
-					ctx.lineTo(parsed.Board[i].x, parsed.Board[i].y);
-					ctx.stroke();
-					ctx.closePath();
-				}
-				color = saveColor;
-			}
+		/********************* GUESSER FUNCTIONS *********************/
+
+
+		function guess()
+		{
+			 if (isDrawer)
+				return;
+
+			sendToServer(JSON.stringify(textbox.value));
 		}
 
-		// start two intervals:
-		// every 10 ms:
-			// if drawer: send entire drawed range
-			// for both: read godpacket from server
 
-		ws.onmessage = read;
+		/********************* DRAWER FUNCTIONS *********************/
 
-		var drawnPoints = [];
 
+		// flush buffered drawing to server
 		setInterval(function()
 		{
 			if (isDrawer)
@@ -64,6 +49,25 @@
 				flush();
 			}
 		}, 200);
+
+		function mousePos(e)
+		{
+			prevMouseX = mouseX;
+			prevMouseY = mouseY;
+			mouseX = e.clientX - canvas.offsetLeft;
+			mouseY = e.clientY - canvas.offsetTop;
+		}
+
+		function draw()
+		{
+			if (!isDrawer)
+				return;
+
+			if (mouseX > 0 && mouseX < 400 && mouseY > 0 && mouseY < 400) {
+				doDraw(mouseX, mouseY, prevMouseX, prevMouseY);
+				drawnPoints.push({'X' : mouseX, 'Y' : mouseY});
+			}
+		}
 
 		function flush()
 		{
@@ -79,6 +83,84 @@
 			sendToServer(JSON.stringify(packet));
 			drawnPoints = [];
 		}
+
+
+		function toggleEraser()
+		{
+			flush();
+
+			if (eraseCheck.checked)
+			{
+				saveColor = color;
+				color = "white";
+			}
+
+			else
+			{
+				color = saveColor;
+			}
+		}
+
+
+		/********************* SHARED FUNCTIONS *********************/
+
+
+		function doDraw(xCoord, yCoord, prevXCoord, prevYCoord)
+		{
+			ctx.strokeStyle = color;
+			ctx.beginPath();
+			ctx.moveTo(prevXCoord, prevYCoord)
+				ctx.lineTo(xCoord, yCoord);
+			ctx.stroke();
+			ctx.closePath();
+		}
+
+		// handle message from server
+		var read = function(event)
+		{
+			var parsed = JSON.parse(event.data);
+			isDrawer = parsed.IsDrawer;
+			console.log(parsed);
+
+			if (!isDrawer && parsed.Board.length != 0)
+			{
+				saveColor = color;
+				color = parsed.Color;
+				for (var i = 1; i < parsed.Board.length; i++)
+				{
+					doDraw(parsed.Board[i].x, parsed.Board[i].y, parsed.Board[i-1].x, parsed.Board[i-1].y)
+					// console.log("draw at: " + parsed.Board[i].x + " " +  parsed.Board[i].y);
+					// ctx.fillRect(parsed.Board[i].x, parsed.Board[i].y, 1, 1);
+				}
+				color = saveColor;
+			}
+		}
+
+		// receive message from server
+		ws.onmessage = read;
+
+		// Clears board, called by server if we are a guesser
+		function clear()
+		{
+			ctx.clearRect(0, 0, canvas.width, canvas.height);
+		}
+
+		// quit game
+		function quit()
+		{
+			sendToServer("quit");
+			ws.close();
+		}
+
+		// send data to server
+		function sendToServer(data)
+		{
+			ws.send(data);
+		}
+
+
+		/********************* EVENT LISTENERS *********************/
+
 
 		window.addEventListener('beforeunload', function (e) {
 			quit();
@@ -108,73 +190,5 @@
 			toggleEraser();
 		});
 
-
-/*		function getId() {
-			 getFromServer(""). ;
-		}*/
-
-		function mousePos(e)
-		{
-			prevMouseX = mouseX;
-			prevMouseY = mouseY;
-			mouseX = e.clientX - canvas.offsetLeft;
-			mouseY = e.clientY - canvas.offsetTop;
-		}
-
-		function draw()
-		{
-			if (!isDrawer)
-				return;
-
-			ctx.strokeStyle = color;
-			ctx.beginPath();
-			ctx.moveTo(prevMouseX, prevMouseY)
-				ctx.lineTo(mouseX, mouseY);
-			ctx.stroke();
-			ctx.closePath();
-			var location =	{'X' : mouseX, 'Y' : mouseY} // , 'c': color} DO THIS LATER
-			// sendToServer(JSON.stringify(location));
-			drawnPoints.push(location);
-		}
-
-		function toggleEraser()
-		{
-			flush();
-
-			if (eraseCheck.checked)
-			{
-				saveColor = color;
-				color = "white";
-			}
-
-			else
-			{
-				color = saveColor;
-			}
-		}
-
-		function clear()
-		{
-			ctx.clearRect(0, 0, canvas.width, canvas.height);
-		}
-
-		function quit()
-		{
-			sendToServer("quit");
-			ws.close();
-		}
-
-		var guess = function()
-		{
-			// if (isDrawer)
-				//   return;
-
-			sendToServer(JSON.stringify(textbox.value));
-		}
-
-		function sendToServer(data)
-		{
-			ws.send(data);
-		}
 
 	}());
