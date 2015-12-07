@@ -26,6 +26,8 @@
 		var drawerView = document.getElementById('drawerView');
 		var guesserView = document.getElementById('guesserView');
 
+		var guesses = document.getElementById("guesses");
+
 		var ws = new WebSocket("ws://localhost:7777/socket");
 
 
@@ -37,6 +39,8 @@
 			 if (isDrawer)
 				return;
 
+			updateGuesses();
+
 			var guessPacket = {};
 			guessPacket.Type = "guess";
 			guessPacket.Data = textbox.value;
@@ -44,6 +48,9 @@
 			sendToServer(guessPacket);
 		}
 
+		function updateGuesses() {
+			guess.innerHTML = "<div>" + textbox.value + "</div>" + guess.innerHTML;
+		}
 
 		/********************* DRAWER FUNCTIONS *********************/
 
