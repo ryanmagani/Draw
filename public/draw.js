@@ -147,7 +147,9 @@
 		// quit game
 		function quit()
 		{
-			sendToServer("quit");
+			var quitPacket = {};
+			quitPacket.Type = "quit";
+			sendToServer(quitPacket);
 			ws.close();
 		}
 
@@ -161,9 +163,10 @@
 		/********************* EVENT LISTENERS *********************/
 
 
-		window.addEventListener('beforeunload', function (e) {
+		window.onbeforeunload = function()
+		{
 			quit();
-		}, false);
+		};
 
 		canvas.addEventListener('mousemove', function(e) {
 			mousePos(e);
