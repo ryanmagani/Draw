@@ -49,7 +49,11 @@
 		}
 
 		function updateGuesses() {
-			guess.innerHTML = "<div>" + textbox.value + "</div>" + guess.innerHTML;
+			guesses.innerHTML = "<div>" + textbox.value + "</div>" + guesses.innerHTML;
+		}
+
+		function clearGuesses() {
+			guesses.innerHTML = "";
 		}
 
 		/********************* DRAWER FUNCTIONS *********************/
@@ -133,6 +137,13 @@
 		var read = function(event)
 		{
 			var parsed = JSON.parse(event.data);
+			var newIsDrawer = parsed.IsDrawer;
+
+			//FIND WAY TO LET EVERYONE KNOW THAT THERE'S A NEW DRAWER
+			if (newIsDrawer != isDrawer) {
+				clearGuesses();
+			}
+
 			isDrawer = parsed.IsDrawer;
 
 			toggleView();
