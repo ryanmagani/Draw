@@ -22,6 +22,7 @@ type Packet struct {
 	Board []Point `json:"Board"`
 	Color string `json:"Color"`
 	IsDrawer bool `json:"IsDrawer"`
+	Data string `json:"Data"`
 }
 
 type Client struct {
@@ -88,7 +89,8 @@ func assignDrawer() *Client{
 	pkt := Packet{"nextWord",
 		nil,
 		"",
-		false}
+		false,
+		""}
 
 	var returnClient *Client
 
@@ -120,6 +122,7 @@ func handleDrawer(currClient *Client) {
 		select {
 
 		case <-game.guessCorrect:
+			fmt.Println("wtf")
 			currClient = assignDrawer()
 
 		case packet := <-input:
@@ -155,31 +158,37 @@ func handleDrawer(currClient *Client) {
 }
 
 func handleGuesser(currClient *Client) {
-	var guess string
+	var packet Packet
 	for {
-		websocket.JSON.Receive(currClient.ws, &guess)
-		if game.word == guess {
-			// guessed correctly, switch ourselves with drawer
-			game.Lock()
-			currDrawer := game.clients[game.drawerIndex]
+		websocket.JSON.Receive(currClient.ws, &packet)
+		switch {
+		case packet.Ptype == "guess":
+			fmt.Println(packet.Data)
+			if game.word == packet.Data {
+				// guessed correctly, switch ourselves with drawer
+				game.Lock()
+				currDrawer := game.clients[game.drawerIndex]
 
-			// find our current index
-			i := 0
+				// find our current index
+				i := 0
 
-			for ; game.clients[i]._id != currClient._id; i++ { }
+				for ; game.clients[i]._id != currClient._id; i++ { }
 
-			// set drawer index to our index
-			game.drawerIndex = i
-			game.guessCorrect <- true
+				// set drawer index to our index
+				game.drawerIndex = i
+				game.guessCorrect <- true
 
-			// set ourselves to old drawer
-			currClient = currDrawer
+				// set ourselves to old drawer
+				currClient = currDrawer
 
-			game.canvas = [BOARD_SIZE][BOARD_SIZE]int{}
+				game.canvas = [BOARD_SIZE][BOARD_SIZE]int{}
 
-			game.Unlock()
-		} else {
-			// client guessed wrong
+				game.Unlock()
+			} else {
+				// client guessed wrong
+			}
+		case packet.Ptype == "quit":
+			fmt.Println("quitter")
 		}
 	}
 
@@ -228,7 +237,8 @@ func join(ws *websocket.Conn) *Client {
 	pkt := Packet{"init",
 		getBoard(),
 		"",
-		isDrawer}
+		isDrawer,
+		""}
 
 /*	drawnPoints := make([]Point, 2)
 	drawnPoints[0] = Point{1,1}
