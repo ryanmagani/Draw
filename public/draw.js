@@ -23,6 +23,9 @@
 		var textbox = document.getElementById('guessText');
 		var guessBtn = document.getElementById('guessBtn');
 
+		var drawerView = document.getElementById('drawerView');
+		var guesserView = document.getElementById('guesserView');
+
 		var ws = new WebSocket("ws://localhost:7777/socket");
 
 
@@ -34,7 +37,11 @@
 			 if (isDrawer)
 				return;
 
-			sendToServer(JSON.stringify(textbox.value));
+			var guessPacket = {};
+			guessPacket.Type = "guess";
+			guessPacket.Data = textbox.value;
+
+			sendToServer(guessPacket);
 		}
 
 
@@ -77,10 +84,11 @@
 			}
 
 			var packet = {};
+			packet.Type = "draw";
 			packet.Board = drawnPoints;
 			packet.Color = color;
 			console.log(JSON.stringify(packet));
-			sendToServer(JSON.stringify(packet));
+			sendToServer(packet);
 			drawnPoints = [];
 		}
 
@@ -119,7 +127,8 @@
 		{
 			var parsed = JSON.parse(event.data);
 			isDrawer = parsed.IsDrawer;
-			console.log(parsed);
+
+			toggleView();
 
 			if (!isDrawer && parsed.Board != null && parsed.Board.length != 0)
 			{
@@ -147,16 +156,27 @@
 		// quit game
 		function quit()
 		{
-			sendToServer("quit");
+			var quitPacket = {};
+			quitPacket.Type = "quit";
+			sendToServer(quitPacket);
 			ws.close();
 		}
 
 		// send data to server
 		function sendToServer(data)
 		{
-			ws.send(data);
+			ws.send(JSON.stringify(data));
 		}
 
+		function toggleView() {
+			if (isDrawer) {
+				drawerView.style.display = "block";
+				guesserView.style.display = "none";
+			} else {
+				drawerView.style.display = "none";
+				guesserView.style.display = "block";
+			}
+		}
 
 		/********************* EVENT LISTENERS *********************/
 

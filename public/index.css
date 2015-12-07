@@ -1,3 +1,7 @@
 canvas {
 	border-style: solid;
 }
+
+#mainContent {
+	text-align: center;
+}
