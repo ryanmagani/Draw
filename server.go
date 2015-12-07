@@ -82,6 +82,30 @@ func handleSocketIn(ws *websocket.Conn) {
 	}
 }
 
+func assignDrawer() *Client{
+	game.Lock()
+	fmt.Println("I'm hard")
+	pkt := Packet{"nextWord",
+		nil,
+		"",
+		false}
+
+	var returnClient *Client
+
+	for i := 0; i < len(game.clients); i++ {
+		if (i == game.drawerIndex) {
+			returnClient = game.clients[i]
+			pkt.IsDrawer = true
+		} else {
+			pkt.IsDrawer = false
+		}
+		websocket.JSON.Send(game.clients[i].ws, pkt)
+
+	}
+	game.Unlock()
+	return returnClient
+}
+
 func handleDrawer(currClient *Client) {
 	input := make(chan Packet, 1)
 	go func() {
@@ -96,46 +120,36 @@ func handleDrawer(currClient *Client) {
 		select {
 
 		case <-game.guessCorrect:
-			game.Lock()
-			fmt.Println("I'm hard")
-			pkt := Packet{"nextWord",
-				nil,
-				"",
-				false}
+			currClient = assignDrawer()
 
-			for i := 0; i < len(game.clients); i++ {
-				if (i == game.drawerIndex) {
-					currClient = game.clients[i]
-					pkt.IsDrawer = true
-				} else {
-					pkt.IsDrawer = false
-				}
-				websocket.JSON.Send(game.clients[i].ws, pkt)
-
-			}
-			game.Unlock()
-
-		case packet := <-input:			
+		case packet := <-input:
 			fmt.Println("clr: ", packet.Color)
 			fmt.Println("arr: ", packet.Board)
 
 			game.Lock()
-			colorVal := 1
-			if packet.Color == "white" {
-				colorVal = 0
-			}
 
-			for i := 0; i < len(packet.Board); i++ {
-				game.canvas[packet.Board[i].X][packet.Board[i].Y] = colorVal
-			}
+			if packet.Ptype == "quit" {
+				quit(currClient)
+			} else {
 
-			for i := 0; i < len(game.clients); i++ {
-				if i != game.drawerIndex {
-					websocket.JSON.Send(game.clients[i].ws, packet)
+
+				colorVal := 1
+				if packet.Color == "white" {
+					colorVal = 0
 				}
-			}
 
-			game.Unlock()
+				for i := 0; i < len(packet.Board); i++ {
+					game.canvas[packet.Board[i].X][packet.Board[i].Y] = colorVal
+				}
+
+				for i := 0; i < len(game.clients); i++ {
+					if i != game.drawerIndex {
+						websocket.JSON.Send(game.clients[i].ws, packet)
+					}
+				}
+
+				game.Unlock()
+			}
 		}
 	}
 }
@@ -230,7 +244,20 @@ func join(ws *websocket.Conn) *Client {
 	return newClient;
 }
 
-func quit(w http.ResponseWriter, r * http.Request) {
+func quit(currClient *Client) {
 	// getguid
 	// GM.games[].c
+
+	// if we are the drawer, assign new drawer
+	if (currClient == game.clients[game.drawerIndex]) {
+		game.clients = append(game.clients[:game.drawerIndex], game.clients[game.drawerIndex+1:]...);
+		if (game.drawerIndex >= len(game.clients)) {
+			game.drawerIndex = 0;
+		}
+	} else {
+		i := 0
+		for ; game.clients[i] != currClient; i++ {}
+		game.clients = append(game.clients[:i], game.clients[i+1:]...);
+	}
+
 }

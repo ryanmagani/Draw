@@ -161,9 +161,9 @@
 		/********************* EVENT LISTENERS *********************/
 
 
-		window.addEventListener('beforeunload', function (e) {
+		window.onbeforeunload = function () {
 			quit();
-		}, false);
+		};
 
 		canvas.addEventListener('mousemove', function(e) {
 			mousePos(e);
