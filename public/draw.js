@@ -34,7 +34,11 @@
 			 if (isDrawer)
 				return;
 
-			sendToServer(JSON.stringify(textbox.value));
+			var guessPacket = {};
+			guessPacket.Type = "guess";
+			guessPacket.Data = textbox.value;
+
+			sendToServer(guessPacket);
 		}
 
 
@@ -77,10 +81,11 @@
 			}
 
 			var packet = {};
+			packet.Type = "draw";
 			packet.Board = drawnPoints;
 			packet.Color = color;
 			console.log(JSON.stringify(packet));
-			sendToServer(JSON.stringify(packet));
+			sendToServer(packet);
 			drawnPoints = [];
 		}
 
@@ -156,7 +161,7 @@
 		// send data to server
 		function sendToServer(data)
 		{
-			ws.send(data);
+			ws.send(JSON.stringify(data));
 		}
 
 
