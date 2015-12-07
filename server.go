@@ -133,6 +133,7 @@ func handleDrawer(currClient *Client) {
 
 			if packet.Ptype == "quit" {
 				quit(currClient)
+				return
 			} else {
 
 
@@ -161,6 +162,7 @@ func handleGuesser(currClient *Client) {
 	var packet Packet
 	for {
 		websocket.JSON.Receive(currClient.ws, &packet)
+		fmt.Println(packet.Ptype)
 		switch {
 		case packet.Ptype == "guess":
 			fmt.Println(packet.Data)
@@ -187,8 +189,11 @@ func handleGuesser(currClient *Client) {
 			} else {
 				// client guessed wrong
 			}
+
 		case packet.Ptype == "quit":
-			fmt.Println("quitter")
+			fmt.Println("quitting...")
+			quit(currClient)
+			return
 		}
 	}
 
@@ -255,9 +260,9 @@ func join(ws *websocket.Conn) *Client {
 }
 
 func quit(currClient *Client) {
+	currClient.ws.Close()
 	// getguid
 	// GM.games[].c
-
 	// if we are the drawer, assign new drawer
 	if (currClient == game.clients[game.drawerIndex]) {
 		game.clients = append(game.clients[:game.drawerIndex], game.clients[game.drawerIndex+1:]...);
