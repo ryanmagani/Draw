@@ -48,15 +48,6 @@
 		/********************* DRAWER FUNCTIONS *********************/
 
 
-		// flush buffered drawing to server
-		setInterval(function()
-		{
-			if (isDrawer)
-			{
-				flush();
-			}
-		}, 200);
-
 		function mousePos(e)
 		{
 			prevMouseX = mouseX;
@@ -114,12 +105,19 @@
 
 		function doDraw(xCoord, yCoord, prevXCoord, prevYCoord)
 		{
-			ctx.strokeStyle = color;
-			ctx.beginPath();
-			ctx.moveTo(prevXCoord, prevYCoord)
+			if (color != "white") {
+				// drawing
+				ctx.strokeStyle = color;
+				ctx.beginPath();
+				ctx.moveTo(prevXCoord, prevYCoord);
 				ctx.lineTo(xCoord, yCoord);
-			ctx.stroke();
-			ctx.closePath();
+				ctx.stroke();
+				ctx.closePath();
+			} else {
+				// erasing
+				ctx.fillStyle = color;
+				ctx.fillRect(xCoord - 10, yCoord - 10, 20, 20);
+			}
 		}
 
 		// handle message from server
@@ -195,6 +193,11 @@
 
 		canvas.addEventListener('mouseup', function(e) {
 			canvas.removeEventListener('mousemove', draw, false);
+
+			// if we are the drawer, flush buffered drawing to server
+			if (isDrawer)
+				flush();
+
 		}, false);
 
 		textbox.addEventListener('keypress', function(e) {
