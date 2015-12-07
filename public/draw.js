@@ -23,6 +23,9 @@
 		var textbox = document.getElementById('guessText');
 		var guessBtn = document.getElementById('guessBtn');
 
+		var drawerView = document.getElementById('drawerView');
+		var guesserView = document.getElementById('guesserView');
+
 		var ws = new WebSocket("ws://localhost:7777/socket");
 
 
@@ -119,7 +122,8 @@
 		{
 			var parsed = JSON.parse(event.data);
 			isDrawer = parsed.IsDrawer;
-			console.log(parsed);
+
+			toggleView();
 
 			if (!isDrawer && parsed.Board != null && parsed.Board.length != 0)
 			{
@@ -159,6 +163,15 @@
 			ws.send(data);
 		}
 
+		function toggleView() {
+			if (isDrawer) {
+				drawerView.style.display = "block";
+				guesserView.style.display = "none";
+			} else {
+				drawerView.style.display = "none";
+				guesserView.style.display = "block";
+			}
+		}
 
 		/********************* EVENT LISTENERS *********************/
 
