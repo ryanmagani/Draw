@@ -3,9 +3,9 @@ package main
 import (
 	"./lib/go.net/websocket"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"sync"
+	"math/rand"
 )
 
 const BOARD_SIZE = 400
@@ -28,8 +28,8 @@ type Packet struct {
 type Client struct {
 	_id  uint64
 	ws *websocket.Conn
-	isDrawer bool
 	score int
+	output chan Packet
 }
 
 type Game struct {
@@ -38,7 +38,6 @@ type Game struct {
 	// current word to guess
 	word string
 	clients []*Client
-	guessCorrect chan bool
 	drawerIndex int
 	canvas [BOARD_SIZE][BOARD_SIZE]int
 	*sync.Mutex
@@ -52,7 +51,6 @@ func main() {
 	game = Game {0,
 		"newGame",
 		make([]*Client, 0),
-		make(chan bool, 1),
 		0,
 		[BOARD_SIZE][BOARD_SIZE]int{},
 		&sync.Mutex{}}
@@ -63,155 +61,16 @@ func main() {
 	http.ListenAndServe(":7777", nil)
 }
 
-func nextWord() {
-	game.Lock()
-	defer game.Unlock()
-	game.drawerIndex++
-	game.drawerIndex = game.drawerIndex % len(game.clients)
-	game.word = "new"
+// requires that game is locked
+func isDrawer(c *Client) bool {
+	return c == game.clients[game.drawerIndex]
 }
 
-func handleSocketIn(ws *websocket.Conn) {
-	// setup connection with new user
-	// store their information in the game
-	// return a piece of information regarding whether or not they are drawing
-	currClient := join(ws)
-	if currClient.isDrawer {
-		handleDrawer(currClient)
-	} else {
-		handleGuesser(currClient)
-	}
+func nextWord() string {
+	return "newWord"
 }
 
-func assignDrawer() *Client{
-	game.Lock()
-	fmt.Println("I'm hard")
-	pkt := Packet{"nextWord",
-		nil,
-		"",
-		false,
-		""}
-
-	var returnClient *Client
-
-	for i := 0; i < len(game.clients); i++ {
-		if (i == game.drawerIndex) {
-			returnClient = game.clients[i]
-			pkt.IsDrawer = true
-		} else {
-			pkt.IsDrawer = false
-		}
-		websocket.JSON.Send(game.clients[i].ws, pkt)
-
-	}
-	game.Unlock()
-	return returnClient
-}
-
-func handleDrawer(currClient *Client) {
-	input := make(chan Packet, 1)
-	go func() {
-		var packet Packet
-		for {
-			websocket.JSON.Receive(currClient.ws, &packet)
-			input<-packet
-		}
-	}()
-
-	for {
-		select {
-
-		case <-game.guessCorrect:
-			fmt.Println("wtf")
-			currClient = assignDrawer()
-
-		case packet := <-input:
-			fmt.Println("clr: ", packet.Color)
-			fmt.Println("arr: ", packet.Board)
-
-			game.Lock()
-
-			if packet.Ptype == "quit" {
-				quit(currClient)
-				return
-			} else {
-
-
-				colorVal := 1
-				if packet.Color == "white" {
-					colorVal = 0
-				}
-
-				for i := 0; i < len(packet.Board); i++ {
-					game.canvas[packet.Board[i].X][packet.Board[i].Y] = colorVal
-				}
-
-				for i := 0; i < len(game.clients); i++ {
-					if i != game.drawerIndex {
-						websocket.JSON.Send(game.clients[i].ws, packet)
-					}
-				}
-
-				game.Unlock()
-			}
-		}
-	}
-}
-
-func handleGuesser(currClient *Client) {
-	var packet Packet
-	for {
-		websocket.JSON.Receive(currClient.ws, &packet)
-		fmt.Println(packet.Ptype)
-		switch {
-		case packet.Ptype == "guess":
-			fmt.Println(packet.Data)
-			if game.word == packet.Data {
-				// guessed correctly, switch ourselves with drawer
-				game.Lock()
-				currDrawer := game.clients[game.drawerIndex]
-
-				// find our current index
-				i := 0
-
-				for ; game.clients[i]._id != currClient._id; i++ { }
-
-				// set drawer index to our index
-				game.drawerIndex = i
-				game.guessCorrect <- true
-
-				// set ourselves to old drawer
-				currClient = currDrawer
-
-				game.canvas = [BOARD_SIZE][BOARD_SIZE]int{}
-
-				game.Unlock()
-			} else {
-				// client guessed wrong
-			}
-
-		case packet.Ptype == "quit":
-			fmt.Println("quitting...")
-			quit(currClient)
-			return
-		}
-	}
-
-}
-
-func draw(w http.ResponseWriter, r * http.Request) {
-	// parse the request looking for:
-		// which game it belongs to
-		// what user is drawing
-		// what the user drew
-	body, _ := ioutil.ReadAll(r.Body)
-	fmt.Printf(string(body) + "\n")
-}
-
-func guess(w http.ResponseWriter, r * http.Request) {
-	fmt.Printf("guess rcvd\n")
-}
-
+// requires that game is locked
 func getBoard() []Point {
 	drawnPoints := make([]Point, 0)
 	for i := 0; i < BOARD_SIZE; i++ {
@@ -224,12 +83,35 @@ func getBoard() []Point {
 	return drawnPoints
 }
 
-func join(ws *websocket.Conn) *Client {
-	// parse the request looking for:
-		// which game the user wants to join
-		// what user is trying to join
-	//c := null
+// requires that game is locked
+// sends the packet to all channels, modifying the
+// packet to set IsDrawer to true for the drawer
+func updateAllChan(packet Packet) {
+	updateNonDrawer(packet)
+	packet.IsDrawer = true
+	game.clients[game.drawerIndex].output <- packet
+}
 
+// requires that game is locked
+// sends the packet to all channels,
+// except that of the drawer
+func updateNonDrawer(packet Packet) {
+	for i := 0; i < len(game.clients); i++ {
+		if (i != game.drawerIndex) {
+			game.clients[i].output <- packet
+		}
+	}
+}
+
+func handleSocketIn(ws *websocket.Conn) {
+	// setup connection with new user
+	// store their information in the game
+	// return a piece of information regarding whether or not they are drawing
+	currClient := join(ws)
+	handleSocket(currClient)
+}
+
+func join(ws *websocket.Conn) *Client {
 	game.Lock()
 	defer game.Unlock()
 
@@ -238,6 +120,7 @@ func join(ws *websocket.Conn) *Client {
 		isDrawer = true
 	}
 
+	fmt.Println("Debug: client joined, isDrawer:", isDrawer)
 
 	pkt := Packet{"init",
 		getBoard(),
@@ -245,12 +128,9 @@ func join(ws *websocket.Conn) *Client {
 		isDrawer,
 		""}
 
-/*	drawnPoints := make([]Point, 2)
-	drawnPoints[0] = Point{1,1}
-	drawnPoints[1] = Point{2,2}*/
 	websocket.JSON.Send(ws, pkt)
 
-	newClient := &Client{game.maxId, ws, isDrawer, 0}
+	newClient := &Client{game.maxId, ws, 0, make(chan Packet, 1)}
 
 	// increment maxId
 	game.maxId++
@@ -259,20 +139,191 @@ func join(ws *websocket.Conn) *Client {
 	return newClient;
 }
 
-func quit(currClient *Client) {
-	currClient.ws.Close()
-	// getguid
-	// GM.games[].c
-	// if we are the drawer, assign new drawer
-	if (currClient == game.clients[game.drawerIndex]) {
-		game.clients = append(game.clients[:game.drawerIndex], game.clients[game.drawerIndex+1:]...);
-		if (game.drawerIndex >= len(game.clients)) {
-			game.drawerIndex = 0;
+func handleSocket(currClient * Client) {
+	input := make(chan Packet, 1)
+	go func() {
+		var packet Packet
+		for {
+			websocket.JSON.Receive(currClient.ws, &packet)
+			input<-packet
 		}
-	} else {
-		i := 0
-		for ; game.clients[i] != currClient; i++ {}
-		game.clients = append(game.clients[:i], game.clients[i+1:]...);
+	}()
+
+	for {
+		select {
+		case packet := <-currClient.output:
+			websocket.JSON.Send(currClient.ws, packet)
+		case packet := <-input:
+			switch packet.Ptype {
+			case "ack":
+				handleAck(currClient, packet)
+			case "guess":
+				handleGuess(currClient, packet)
+			case "draw":
+				handleDraw(currClient, packet)
+			case "clear":
+				handleClear(currClient)
+			case "quit":
+				handleQuit(currClient)
+				return
+			}
+		}
+	}
+}
+
+func handleAck(currClient * Client, packetIn Packet) {
+	fmt.Println("ack recv")
+}
+
+// If the guess is correct, update the guesser and
+// alert all clients of a change in word, otherwise,
+// do nothing
+func handleGuess(currClient * Client, packetIn Packet) {
+	game.Lock()
+	defer game.Unlock()
+
+	if isDrawer(currClient) {
+		fmt.Println("Debug: a drawer tried to guess")
+		return
 	}
 
+	fmt.Println("Debug: guesser guessing", packetIn.Data, "actual", game.word)
+
+	if game.word == packetIn.Data {
+		game.word = nextWord()
+		game.canvas = [BOARD_SIZE][BOARD_SIZE]int{}
+		packetOut := Packet{Ptype: "next",
+					Board: nil,
+					Color: "",
+					IsDrawer: false,
+					Data: ""}
+
+		// TODO: potentially call updateAllChan, though this
+		// is more efficient
+		for i := 0; i < len(game.clients); i++ {
+			if game.clients[i] == currClient {
+				// tell the guesser that s/he has correctly
+				// guessed the word
+				game.drawerIndex = i
+				packetOut.IsDrawer = true
+				websocket.JSON.Send(game.clients[i].ws, packetOut)
+				packetOut.IsDrawer = false
+			} else {
+				// delegate each client to send a packet on their
+				// own so that if that 'send' fails, it does not
+				// affect other clients
+				game.clients[i].output <- packetOut
+			}
+		}
+	}
+}
+
+// Send the drawing to all the clients and update
+// our internal representation of the game board
+func handleDraw(currClient * Client, packetIn Packet) {
+	game.Lock()
+	defer game.Unlock()
+
+	if !isDrawer(currClient) {
+		fmt.Println("Debug: a guesser tried to draw")
+		return
+	}
+
+	fmt.Println("Debug: drawer drawing")
+
+	packetOut := Packet{Ptype: "draw",
+						Board: packetIn.Board,
+						Color: packetIn.Color,
+						IsDrawer: false,
+						Data: ""}
+
+	updateNonDrawer(packetOut)
+
+	// TODO: update internal reprsentation, no point
+	// doing this right now if we're going to change it
+}
+
+func handleClear(currClient * Client) {
+	game.Lock()
+	defer game.Unlock()
+
+	if !isDrawer(currClient) {
+		fmt.Println("Debug: a guesser tried to clear")
+		return
+	}
+
+	fmt.Println("drawer clearing")
+
+	packetOut := Packet{Ptype: "clear",
+						Board: nil,
+						Color: "",
+						IsDrawer: false,
+						Data: ""}
+
+	updateNonDrawer(packetOut)
+}
+
+// Remove the client from the list of clients and close
+// his/her websocket
+// If this client was the drawer, assign some random
+// guesser to be the drawer and start a new round
+// If the last drawer quit, do not assign a new drawer
+func handleQuit(currClient * Client) {
+	game.Lock()
+	defer game.Unlock()
+
+	currClient.ws.Close()
+
+	isDrawer := isDrawer(currClient)
+
+	fmt.Println("Debug: client quitting, isDrawer:", isDrawer)
+
+	// increment i until the we find the index of
+	// the quitting client
+	var i int
+	for i = 0; game.clients[i] != currClient; i++ {
+	}
+
+	game.clients = append(game.clients[:i], game.clients[i+1:]...)
+
+	var packetOut Packet
+	if len(game.clients) == 0 {
+		game.drawerIndex = 0
+		game.word = nextWord()
+		game.canvas = [BOARD_SIZE][BOARD_SIZE]int{}
+		game.clients = make([]*Client, 0)
+		return
+	} else if isDrawer {
+		// the drawer just quit, clear current game state
+		game.word = nextWord()
+		game.canvas = [BOARD_SIZE][BOARD_SIZE]int{}
+
+		// otherwise, randomly assign a new drawer and
+		// set up a new round
+		game.drawerIndex = rand.Intn(len(game.clients))
+
+		packetOut = Packet{Ptype: "quit",
+					Board: nil,
+					Color: "",
+					IsDrawer: false,
+					Data: ""}
+	} else {
+		// otherwise, tell everyone about the quit anyways so
+		// any leaderboards, etc. can be updated
+		if i < game.drawerIndex {
+			// if the quitter's index was lower than the drawers,
+			// adjust accordingly
+			game.drawerIndex--
+		}
+
+		packetOut = Packet{Ptype: "quit",
+					Board: nil, // TODO: this does NOT imply that 
+								// the board should be cleared,
+								// what should we do here?
+					Color: "",
+					IsDrawer: false,
+					Data: ""}
+	}
+
+	updateAllChan(packetOut)
 }

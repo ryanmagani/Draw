@@ -169,6 +169,9 @@
 		function clear()
 		{
 			ctx.clearRect(0, 0, canvas.width, canvas.height);
+			var clearPacket = {};
+			clearPacket.Type = "clear";
+			sendToServer(clearPacket);
 		}
 
 		// quit game
