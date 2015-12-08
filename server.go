@@ -144,7 +144,13 @@ func handleSocket(currClient * Client) {
 	go func() {
 		var packet Packet
 		for {
-			websocket.JSON.Receive(currClient.ws, &packet)
+			err := websocket.JSON.Receive(currClient.ws, &packet)
+
+			if err != nil {
+				fmt.Println("Debug: websocket is closed")
+				return
+			}
+
 			input<-packet
 		}
 	}()
