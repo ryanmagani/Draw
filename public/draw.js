@@ -16,6 +16,7 @@
 		var prevMouseY = 0;
 
 		var isDrawer = false;
+		var currentDrawer = ""; // TODO: use this field
 
 		var eraseCheck = document.getElementById('erase');
 		var clearBtn = document.getElementById('clearBtn');
@@ -137,28 +138,59 @@
 		var read = function(event)
 		{
 			var parsed = JSON.parse(event.data);
-			var newIsDrawer = parsed.IsDrawer;
 
-			//FIND WAY TO LET EVERYONE KNOW THAT THERE'S A NEW DRAWER
-			if (newIsDrawer != isDrawer) {
-				clearGuesses();
-			}
-
-			isDrawer = parsed.IsDrawer;
-
-			toggleView();
-
-			if (!isDrawer && parsed.Board != null && parsed.Board.length != 0)
+			switch (parsed.Type)
 			{
-				saveColor = color;
-				color = parsed.Color;
-				for (var i = 1; i < parsed.Board.length; i++)
-				{
-					doDraw(parsed.Board[i].x, parsed.Board[i].y, parsed.Board[i-1].x, parsed.Board[i-1].y)
-					// console.log("draw at: " + parsed.Board[i].x + " " +  parsed.Board[i].y);
-					// ctx.fillRect(parsed.Board[i].x, parsed.Board[i].y, 1, 1);
-				}
-				color = saveColor;
+				case "init":
+					isDrawer = parsed.IsDrawer;
+					toggleView();
+					// TODO: fill the whole board
+					break;
+
+				case "draw":
+					if (!isDrawer && parsed.Board != null && parsed.Board.length != 0)
+					{
+						saveColor = color;
+						color = parsed.Color;
+						for (var i = 1; i < parsed.Board.length; i++)
+						{
+							doDraw(parsed.Board[i].x, parsed.Board[i].y,
+								parsed.Board[i-1].x, parsed.Board[i-1].y);
+							// console.log("draw at: " + parsed.Board[i].x + " " +  parsed.Board[i].y);
+							// ctx.fillRect(parsed.Board[i].x, parsed.Board[i].y, 1, 1);
+						}
+						color = saveColor;
+					}
+					break;
+
+				case "clear":
+					clear();
+					break;
+
+				case "drawerQuit":
+					removeFromLeaderboard(currentDrawer);
+					currentDrawer = parsed.Data;
+					isDrawer = parsed.IsDrawer;
+					toggleView();
+					clear();
+					break;
+
+				case "otherQuit":
+					removeFromLeaderboard(parsed.Data);
+					break;
+
+				case "next":
+					//FIND WAY TO LET EVERYONE KNOW THAT THERE'S A NEW DRAWER
+					// if (parsed.IsDrawer != isDrawer)
+					// {
+						
+					// }
+					clear();
+					clearGuesses();
+					isDrawer = parsed.IsDrawer;
+					drawer = parsed.Data;
+					toggleView();
+					break;
 			}
 		}
 
@@ -171,7 +203,10 @@
 			ctx.clearRect(0, 0, canvas.width, canvas.height);
 			var clearPacket = {};
 			clearPacket.Type = "clear";
-			sendToServer(clearPacket);
+			if (isDrawer)
+			{
+				sendToServer(clearPacket);
+			}
 		}
 
 		// quit game
@@ -181,6 +216,11 @@
 			quitPacket.Type = "quit";
 			sendToServer(quitPacket);
 			ws.close();
+		}
+
+		function removeFromLeaderboard(user)
+		{
+			console.log("TODO: fill me in");
 		}
 
 		// send data to server

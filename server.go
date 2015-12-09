@@ -202,7 +202,7 @@ func handleGuess(currClient * Client, packetIn Packet) {
 					Board: nil,
 					Color: "",
 					IsDrawer: false,
-					Data: ""}
+					Data: ""} // TODO: set data to the new drawer's name
 
 		// TODO: potentially call updateAllChan, though this
 		// is more efficient
@@ -308,11 +308,11 @@ func handleQuit(currClient * Client) {
 		// set up a new round
 		game.drawerIndex = rand.Intn(len(game.clients))
 
-		packetOut = Packet{Ptype: "quit",
+		packetOut = Packet{Ptype: "drawerQuit",
 					Board: nil,
 					Color: "",
 					IsDrawer: false,
-					Data: ""}
+					Data: ""} // TODO: set data to the new drawer's name
 	} else {
 		// otherwise, tell everyone about the quit anyways so
 		// any leaderboards, etc. can be updated
@@ -322,13 +322,13 @@ func handleQuit(currClient * Client) {
 			game.drawerIndex--
 		}
 
-		packetOut = Packet{Ptype: "quit",
+		packetOut = Packet{Ptype: "otherQuit",
 					Board: nil, // TODO: this does NOT imply that 
 								// the board should be cleared,
 								// what should we do here?
 					Color: "",
 					IsDrawer: false,
-					Data: ""}
+					Data: ""} // TODO: set data to the quitter's username
 	}
 
 	updateAllChan(packetOut)
