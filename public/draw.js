@@ -1,5 +1,7 @@
 (function()
 {
+	var userName = prompt("Enter your username");
+
 	var canvas = document.getElementById('canvas');
 	var ctx = canvas.getContext("2d");
 
@@ -30,7 +32,6 @@
 	var guesses = document.getElementById("guesses");
 
 	var ws = new WebSocket("ws://localhost:7777/socket");
-
 
 	/********************* GUESSER FUNCTIONS *********************/
 
@@ -123,6 +124,13 @@
 
 	/********************* SHARED FUNCTIONS *********************/
 
+	function sendName()
+	{
+		var packet = {};
+		packet.Type = "name";
+		packet.Data = userName;
+		sendToServer(packet);
+	}
 
 	function doDraw(xCoord, yCoord, prevXCoord, prevYCoord)
 	{
@@ -145,6 +153,11 @@
 				isDrawer = parsed.IsDrawer;
 				toggleView();
 				// TODO: fill the whole board
+				sendName();
+				break;
+			case "badName":
+				userName = prompt("Enter your username");
+				sendName();
 				break;
 
 			case "draw":

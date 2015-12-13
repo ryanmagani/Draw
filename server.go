@@ -19,16 +19,17 @@ type Point struct {
 // var name is uncapitalized...
 type Packet struct {
 	Ptype string `json:"Type"`
-	Board []Point `json:"Board"`
-	Color string `json:"Color"`
-	IsDrawer bool `json:"IsDrawer"`
-	Data string `json:"Data"`
+	Board []Point `json:"Board",omitempty`
+	Leaderboard map[string]int `json:"Leaderboard",omitempty`
+	Color string `json:"Color",omitempty`
+	IsDrawer bool `json:"IsDrawer",omitempty`
+	Data string `json:"Data",omitempty`
 }
 
 type Client struct {
 	_id  uint64
 	ws *websocket.Conn
-	score int
+	name string
 	output chan Packet
 }
 
@@ -45,6 +46,7 @@ type Game struct {
 
 // Single game per server
 var game Game;
+var leaderboard map[string]int;
 
 // Setup the game and file serving
 func main() {
@@ -54,6 +56,8 @@ func main() {
 		0,
 		[BOARD_SIZE][BOARD_SIZE]int{},
 		&sync.Mutex{}}
+
+		leaderboard = make(map[string]int)
 
 	fmt.Println("Game Started on port 7777")
 	http.Handle("/", http.FileServer(http.Dir("./public")))
@@ -122,15 +126,16 @@ func join(ws *websocket.Conn) *Client {
 
 	fmt.Println("Debug: client joined, isDrawer:", isDrawer)
 
-	pkt := Packet{"init",
-		getBoard(),
-		"",
-		isDrawer,
-		""}
+	pkt := Packet{Ptype: "init",
+		Board: getBoard(),
+		IsDrawer: isDrawer}
 
 	websocket.JSON.Send(ws, pkt)
 
-	newClient := &Client{game.maxId, ws, 0, make(chan Packet, 1)}
+	newClient := &Client{_id: game.maxId,
+		ws: ws,
+		name: "",
+		output: make(chan Packet, 1)}
 
 	// increment maxId
 	game.maxId++
@@ -161,6 +166,8 @@ func handleSocket(currClient * Client) {
 			websocket.JSON.Send(currClient.ws, packet)
 		case packet := <-input:
 			switch packet.Ptype {
+			case "name":
+				handleName(currClient, packet)
 			case "ack":
 				handleAck(currClient, packet)
 			case "guess":
@@ -175,6 +182,16 @@ func handleSocket(currClient * Client) {
 			}
 		}
 	}
+}
+
+func handleName(currClient * Client, packetIn Packet) {
+	currClient.name = packetIn.Data
+	_, inMap := leaderboard[currClient.name]
+
+	if !inMap {
+		leaderboard[currClient.name] = 0
+	}
+	// TODO: safetey checks
 }
 
 func handleAck(currClient * Client, packetIn Packet) {
