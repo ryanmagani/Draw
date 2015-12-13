@@ -87,6 +87,10 @@ func getBoard() []Point {
 	return drawnPoints
 }
 
+func getLeaderboard() map[string]int {
+	return leaderboard
+}
+
 // requires that game is locked
 // sends the packet to all channels, modifying the
 // packet to set IsDrawer to true for the drawer
@@ -128,6 +132,7 @@ func join(ws *websocket.Conn) *Client {
 
 	pkt := Packet{Ptype: "init",
 		Board: getBoard(),
+		Leaderboard: getLeaderboard(),
 		IsDrawer: isDrawer}
 
 	websocket.JSON.Send(ws, pkt)
@@ -135,7 +140,7 @@ func join(ws *websocket.Conn) *Client {
 	newClient := &Client{_id: game.maxId,
 		ws: ws,
 		name: "",
-		output: make(chan Packet, 1)}
+		output: make(chan Packet, 3)}
 
 	// increment maxId
 	game.maxId++
@@ -145,7 +150,7 @@ func join(ws *websocket.Conn) *Client {
 }
 
 func handleSocket(currClient * Client) {
-	input := make(chan Packet, 1)
+	input := make(chan Packet, 3)
 	go func() {
 		var packet Packet
 		for {
@@ -215,12 +220,12 @@ func handleGuess(currClient * Client, packetIn Packet) {
 	if game.word == packetIn.Data {
 		game.word = nextWord()
 		game.canvas = [BOARD_SIZE][BOARD_SIZE]int{}
+		leaderboard[currClient.name] = leaderboard[currClient.name] + 1
 		packetOut := Packet{Ptype: "next",
 					Board: nil,
-					IsDrawer: false} // TODO: set data to the new drawer's name
+					IsDrawer: false,
+					Data: currClient.name}
 
-		// TODO: potentially call updateAllChan, though this
-		// is more efficient
 		for i := 0; i < len(game.clients); i++ {
 			if game.clients[i] == currClient {
 				// tell the guesser that s/he has correctly
@@ -322,7 +327,8 @@ func handleQuit(currClient * Client) {
 
 		packetOut = Packet{Ptype: "drawerQuit",
 					Board: nil,
-					IsDrawer: false} // TODO: set data to the new drawer's name
+					IsDrawer: false,
+					Data: game.clients[game.drawerIndex].name}
 	} else {
 		// otherwise, tell everyone about the quit anyways so
 		// any leaderboards, etc. can be updated
@@ -336,7 +342,8 @@ func handleQuit(currClient * Client) {
 					Board: nil, // TODO: this does NOT imply that 
 								// the board should be cleared,
 								// what should we do here?
-					IsDrawer: false} // TODO: set data to the quitter's username
+					IsDrawer: false,
+					Data: currClient.name}
 	}
 
 	updateAllChan(packetOut)

@@ -146,13 +146,15 @@
 	var read = function(event)
 	{
 		var parsed = JSON.parse(event.data);
-
+console.log(parsed);
 		switch (parsed.Type)
 		{
 			case "init":
 				isDrawer = parsed.IsDrawer;
 				toggleView();
 				// TODO: fill the whole board
+				// TODO: parse and dispaly leaderboard, manually add ourselves
+				// since the server recvs our name afterwards
 				sendName();
 				break;
 			case "badName":
@@ -193,11 +195,8 @@
 				break;
 
 			case "next":
-				//FIND WAY TO LET EVERYONE KNOW THAT THERE'S A NEW DRAWER
-				// if (parsed.IsDrawer != isDrawer)
-				// {
-					
-				// }
+				// TODO: update drawer username here, also update the
+				// new drawer's score
 				clear();
 				clearGuesses();
 				isDrawer = parsed.IsDrawer;
