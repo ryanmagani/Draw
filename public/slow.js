@@ -2,7 +2,7 @@
 {
 	var userName = prompt("Enter your username");
 
-	var artificialDelay = 0;
+	var artificialDelay = 2000;
 	var delay = 0;
 
 	var canvas = document.getElementById('canvas');
@@ -42,17 +42,19 @@
 	function guess()
 	{
 		updateGuesses();
-
+		
 		setTimeout(function() {
 			 if (isDrawer)
 				return;
+
+			updateGuesses();
 
 			var guessPacket = {};
 			guessPacket.Type = "guess";
 			guessPacket.Data = textbox.value;
 
 			sendToServer(guessPacket);
-		}, delay);
+		}, artificialDelay);
 	}
 
 	function updateGuesses() {
@@ -129,14 +131,12 @@
 
 	/********************* SHARED FUNCTIONS *********************/
 
-
 	function sendAck()
 	{
 		var packet = {};
 		packet.Type = "ack";
-		packet.Date = Date.now();
-
-		sendToServer(packet);
+		packet.Date = Date.now() - artificialDelay;
+		sendToServer(packet);	
 	}
 
 	function sendName()
@@ -149,19 +149,12 @@
 
 	function doDraw(xCoord, yCoord, prevXCoord, prevYCoord)
 	{
-		if (color != "white") {
-			// drawing
-			ctx.strokeStyle = color;
-			ctx.beginPath();
-			ctx.moveTo(prevXCoord, prevYCoord);
+		ctx.strokeStyle = color;
+		ctx.beginPath();
+		ctx.moveTo(prevXCoord, prevYCoord)
 			ctx.lineTo(xCoord, yCoord);
-			ctx.stroke();
-			ctx.closePath();
-		} else {
-			// erasing
-			ctx.fillStyle = color;
-			ctx.fillRect(xCoord - 10, yCoord - 10, 20, 20);
-		}
+		ctx.stroke();
+		ctx.closePath();
 	}
 
 	// handle message from server
@@ -169,7 +162,7 @@
 	{
 		setTimeout(function() {
 
-
+		
 			var parsed = JSON.parse(event.data);
 			if (parsed.Delay)
 			{
@@ -240,7 +233,7 @@
 					sendAck();
 					break;
 			}
-		}, delay);
+		}, artificialDelay);
 	}
 
 	// receive message from server
