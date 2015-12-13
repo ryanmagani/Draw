@@ -41,6 +41,8 @@
 
 	function guess()
 	{
+		updateGuesses();
+		
 		setTimeout(function() {
 			 if (isDrawer)
 				return;
