@@ -29,6 +29,7 @@ type Packet struct {
 	IsDrawer bool `json:"IsDrawer",omitempty`
 	Data string `json:"Data",omitempty`
 	Date int64 `json:"Date",omitempty`
+	Delay int64 `json:"Delay",omitempty`
 }
 
 type Client struct {
@@ -113,6 +114,7 @@ func getLeaderboard() map[string]int {
 func updateAllChan(packet Packet) {
 	updateNonDrawer(packet)
 	packet.IsDrawer = true
+	packet.Delay = latency.maxDelay - game.clients[game.drawerIndex].delay
 	game.clients[game.drawerIndex].output <- packet
 }
 
@@ -122,15 +124,10 @@ func updateAllChan(packet Packet) {
 func updateNonDrawer(packet Packet) {
 	for i := 0; i < len(game.clients); i++ {
 		if (i != game.drawerIndex) {
+			packet.Delay = latency.maxDelay - game.clients[i].delay
 			game.clients[i].output <- packet
 		}
 	}
-}
-
-func fairWait(currClient * Client) {
-	delay := time.Millisecond * time.Duration(latency.maxDelay - currClient.delay)
-	fmt.Println("Debug: waiting for", delay)
-	time.Sleep(delay)
 }
 
 func handleSocketIn(ws *websocket.Conn) {
@@ -192,7 +189,6 @@ func handleSocket(currClient * Client) {
 	for {
 		select {
 		case packet := <-currClient.output:
-			fairWait(currClient)
 			websocket.JSON.Send(currClient.ws, packet)
 		case packet := <-input:
 			switch packet.Ptype {
@@ -201,7 +197,6 @@ func handleSocket(currClient * Client) {
 			case "ack":
 				handleAck(currClient, packet)
 			case "guess":
-				fairWait(currClient)
 				handleGuess(currClient, packet)
 			case "draw":
 				handleDraw(currClient, packet)

@@ -1,0 +1,32 @@
+<html>
+	<head>
+		<link rel="stylesheet" type="text/css" href="index.css">
+	</head>
+	<body>
+		<div id="mainContent">
+			<h3>PICTIONARY</h3>
+			<!--
+				Canvas must be set width/height as actual property, not style to
+				make drawing work well. So we do this here rather than in the JS
+			-->
+			<div>
+				<canvas id="canvas" width="400" height="400"></canvas>
+			</div>
+			<br/>
+			<div id="drawerView">
+				<label for="erase">Erase</label><input id="erase" type="checkbox">
+				<button id="clearBtn" type="button">Clear</button>
+			</div>
+			<div id="guesserView">
+				<input id="guessText" type="text" placeholder="guess">
+				<button id="guessBtn" type="button">Guess</button>
+				<div>
+					Previous Guesses:
+					<div id="guesses">
+					</div>
+				</div>
+			</div>
+		</div>
+	</body>
+	<script src="slow.js"></script>
+</html>

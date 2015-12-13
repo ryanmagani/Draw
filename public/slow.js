@@ -2,7 +2,7 @@
 {
 	var userName = prompt("Enter your username");
 
-	var artificialDelay = 0;
+	var artificialDelay = 2000;
 	var delay = 0;
 
 	var canvas = document.getElementById('canvas');
@@ -132,18 +132,9 @@
 		var packet = {};
 		packet.Type = "ack";
 		packet.Date = Date.now();
-
-		if (isDrawer)
-		{
-			sendToServer(packet);
-		}
-
-		else
-		{
-			setTimeout(function() {
-				sendToServer(packet);	
-			}, delay);
-		}
+		setTimeout(function() {
+			sendToServer(packet);	
+		}, artificialDelay);
 	}
 
 	function sendName()
@@ -240,7 +231,7 @@
 					sendAck();
 					break;
 			}
-		}, delay);
+		}, artificialDelay);
 	}
 
 	// receive message from server
