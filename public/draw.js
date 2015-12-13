@@ -2,7 +2,7 @@
 {
 	var userName = prompt("Enter your username");
 
-	var artificialDelay = 2000;
+	var artificialDelay = 0;
 
 	var canvas = document.getElementById('canvas');
 	var ctx = canvas.getContext("2d");

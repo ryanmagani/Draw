@@ -12,6 +12,7 @@ import (
 const BOARD_SIZE = 400
 const DELAY_HISTORY_MAX = 5
 const LATENCY_COUNTER_MAX = 10
+const CHAN_SIZE = 10
 
 type Point struct {
 	X int `json:"x"`
@@ -35,8 +36,8 @@ type Client struct {
 	ws *websocket.Conn
 	name string
 	output chan Packet
-	delayHistory []time.Duration
-	delay time.Duration
+	delayHistory []int64
+	delay int64
 }
 
 type Game struct {
@@ -51,7 +52,7 @@ type Game struct {
 }
 
 type Latency struct {
-	maxDelay time.Duration
+	maxDelay int64
 	counter int
 	*sync.Mutex
 }
@@ -127,7 +128,9 @@ func updateNonDrawer(packet Packet) {
 }
 
 func fairWait(currClient * Client) {
-	time.Sleep(latency.maxDelay - currClient.delay)
+	delay := time.Millisecond * time.Duration(latency.maxDelay - currClient.delay)
+	fmt.Println("Debug: waiting for", delay)
+	time.Sleep(delay)
 }
 
 func handleSocketIn(ws *websocket.Conn) {
@@ -159,8 +162,8 @@ func join(ws *websocket.Conn) *Client {
 	newClient := &Client{_id: game.maxId,
 		ws: ws,
 		name: "",
-		output: make(chan Packet, 3),
-		delayHistory: make([]time.Duration, 0),
+		output: make(chan Packet, CHAN_SIZE),
+		delayHistory: make([]int64, 0),
 		delay: 0}
 
 	// increment maxId
@@ -171,7 +174,7 @@ func join(ws *websocket.Conn) *Client {
 }
 
 func handleSocket(currClient * Client) {
-	input := make(chan Packet, 3)
+	input := make(chan Packet, CHAN_SIZE)
 	go func() {
 		var packet Packet
 		for {
@@ -224,33 +227,29 @@ func handleName(currClient * Client, packetIn Packet) {
 
 func handleAck(currClient * Client, packetIn Packet) {
 	// calculate this packet's delay
-	var delay time.Duration
-	delay = time.Millisecond * time.Duration(time.Now().UnixNano() / int64(time.Millisecond) - packetIn.Date)
-	fmt.Println("Debug: ack with delay:", delay)
+	var delay int64
+	delay = time.Now().UnixNano() / int64(time.Millisecond) - packetIn.Date
 
 	// find this client's new average delay
 	currClient.delayHistory = append(currClient.delayHistory, delay)
-	fmt.Println("history:", currClient.delayHistory)
 	// remove old delay information
 	if (len(currClient.delayHistory) > DELAY_HISTORY_MAX) {
 		currClient.delayHistory = append(currClient.delayHistory[1:])
 	}
-	var totalDelay time.Duration
+	var totalDelay int64
 	totalDelay = 0
 	for i := 0; i < len(currClient.delayHistory); i++ {
 		totalDelay += currClient.delayHistory[i]
 	}
 
-	currClient.delay = time.Duration(delay.Nanoseconds() / int64(len(currClient.delayHistory)))
-	// currClient.delay = totalDelay / (time.Millisecond * time.Duration(len(currClient.delayHistory)))
-	fmt.Println("ccd:", currClient.delay, "td:", totalDelay, "div:", time.Duration(len(currClient.delayHistory)))
+	currClient.delay = totalDelay / int64(len(currClient.delayHistory))
 
 	latency.Lock()
 	defer latency.Unlock()
 
 	// every LATENCY_COUNTER_MAX acks recieved, reset the latency
 	// counter incase a highly delayed player quit
-	latency.counter = latency.counter + 1 % LATENCY_COUNTER_MAX
+	latency.counter = (latency.counter + 1) % LATENCY_COUNTER_MAX
 	if latency.counter == 0 {
 		latency.maxDelay = 0
 	}
