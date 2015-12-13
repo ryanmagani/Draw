@@ -19,7 +19,7 @@ type Point struct {
 // var name is uncapitalized...
 type Packet struct {
 	Ptype string `json:"Type"`
-	Board []Point `json:"Board",omitempty`
+	Board []Point `json:"Board"`
 	Leaderboard map[string]int `json:"Leaderboard",omitempty`
 	Color string `json:"Color",omitempty`
 	IsDrawer bool `json:"IsDrawer",omitempty`
@@ -217,9 +217,7 @@ func handleGuess(currClient * Client, packetIn Packet) {
 		game.canvas = [BOARD_SIZE][BOARD_SIZE]int{}
 		packetOut := Packet{Ptype: "next",
 					Board: nil,
-					Color: "",
-					IsDrawer: false,
-					Data: ""} // TODO: set data to the new drawer's name
+					IsDrawer: false} // TODO: set data to the new drawer's name
 
 		// TODO: potentially call updateAllChan, though this
 		// is more efficient
@@ -257,8 +255,7 @@ func handleDraw(currClient * Client, packetIn Packet) {
 	packetOut := Packet{Ptype: "draw",
 						Board: packetIn.Board,
 						Color: packetIn.Color,
-						IsDrawer: false,
-						Data: ""}
+						IsDrawer: false}
 
 	updateNonDrawer(packetOut)
 
@@ -279,9 +276,7 @@ func handleClear(currClient * Client) {
 
 	packetOut := Packet{Ptype: "clear",
 						Board: nil,
-						Color: "",
-						IsDrawer: false,
-						Data: ""}
+						IsDrawer: false}
 
 	updateNonDrawer(packetOut)
 }
@@ -327,9 +322,7 @@ func handleQuit(currClient * Client) {
 
 		packetOut = Packet{Ptype: "drawerQuit",
 					Board: nil,
-					Color: "",
-					IsDrawer: false,
-					Data: ""} // TODO: set data to the new drawer's name
+					IsDrawer: false} // TODO: set data to the new drawer's name
 	} else {
 		// otherwise, tell everyone about the quit anyways so
 		// any leaderboards, etc. can be updated
@@ -343,9 +336,7 @@ func handleQuit(currClient * Client) {
 					Board: nil, // TODO: this does NOT imply that 
 								// the board should be cleared,
 								// what should we do here?
-					Color: "",
-					IsDrawer: false,
-					Data: ""} // TODO: set data to the quitter's username
+					IsDrawer: false} // TODO: set data to the quitter's username
 	}
 
 	updateAllChan(packetOut)
