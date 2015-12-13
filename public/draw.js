@@ -41,16 +41,18 @@
 
 	function guess()
 	{
-		 if (isDrawer)
-			return;
+		setTimeout(function() {
+			 if (isDrawer)
+				return;
 
-		updateGuesses();
+			updateGuesses();
 
-		var guessPacket = {};
-		guessPacket.Type = "guess";
-		guessPacket.Data = textbox.value;
+			var guessPacket = {};
+			guessPacket.Type = "guess";
+			guessPacket.Data = textbox.value;
 
-		sendToServer(guessPacket);
+			sendToServer(guessPacket);
+		}, delay);
 	}
 
 	function updateGuesses() {

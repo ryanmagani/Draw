@@ -41,16 +41,18 @@
 
 	function guess()
 	{
-		 if (isDrawer)
-			return;
+		setTimeout(function() {
+			 if (isDrawer)
+				return;
 
-		updateGuesses();
+			updateGuesses();
 
-		var guessPacket = {};
-		guessPacket.Type = "guess";
-		guessPacket.Data = textbox.value;
+			var guessPacket = {};
+			guessPacket.Type = "guess";
+			guessPacket.Data = textbox.value;
 
-		sendToServer(guessPacket);
+			sendToServer(guessPacket);
+		}, artificialDelay);
 	}
 
 	function updateGuesses() {
@@ -131,10 +133,8 @@
 	{
 		var packet = {};
 		packet.Type = "ack";
-		packet.Date = Date.now();
-		setTimeout(function() {
-			sendToServer(packet);	
-		}, artificialDelay);
+		packet.Date = Date.now() - artificialDelay;
+		sendToServer(packet);	
 	}
 
 	function sendName()
