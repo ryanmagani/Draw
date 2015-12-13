@@ -2,6 +2,8 @@
 {
 	var userName = prompt("Enter your username");
 
+	var artificialDelay = 2000;
+
 	var canvas = document.getElementById('canvas');
 	var ctx = canvas.getContext("2d");
 
@@ -124,6 +126,16 @@
 
 	/********************* SHARED FUNCTIONS *********************/
 
+	function sendAck()
+	{
+		var packet = {};
+		packet.Type = "ack";
+		packet.Date = Date.now();
+		setTimeout(function() {
+			sendToServer(packet);	
+		}, artificialDelay);
+	}
+
 	function sendName()
 	{
 		var packet = {};
@@ -156,10 +168,12 @@ console.log(parsed);
 				// TODO: parse and dispaly leaderboard, manually add ourselves
 				// since the server recvs our name afterwards
 				sendName();
+				sendAck();
 				break;
 			case "badName":
 				userName = prompt("Enter your username");
 				sendName();
+				sendAck();
 				break;
 
 			case "draw":
@@ -176,10 +190,12 @@ console.log(parsed);
 					}
 					color = saveColor;
 				}
+				sendAck();
 				break;
 
 			case "clear":
 				clear();
+				sendAck();
 				break;
 
 			case "drawerQuit":
@@ -188,10 +204,12 @@ console.log(parsed);
 				isDrawer = parsed.IsDrawer;
 				toggleView();
 				clear();
+				sendAck();
 				break;
 
 			case "otherQuit":
 				removeFromLeaderboard(parsed.Data);
+				sendAck();
 				break;
 
 			case "next":
@@ -202,6 +220,7 @@ console.log(parsed);
 				isDrawer = parsed.IsDrawer;
 				drawer = parsed.Data;
 				toggleView();
+				sendAck();
 				break;
 		}
 	}

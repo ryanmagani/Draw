@@ -6,9 +6,12 @@ import (
 	"net/http"
 	"sync"
 	"math/rand"
+	"time"
 )
 
 const BOARD_SIZE = 400
+const DELAY_HISTORY_MAX = 5
+const LATENCY_COUNTER_MAX = 10
 
 type Point struct {
 	X int `json:"x"`
@@ -24,6 +27,7 @@ type Packet struct {
 	Color string `json:"Color",omitempty`
 	IsDrawer bool `json:"IsDrawer",omitempty`
 	Data string `json:"Data",omitempty`
+	Date int64 `json:"Date",omitempty`
 }
 
 type Client struct {
@@ -31,6 +35,8 @@ type Client struct {
 	ws *websocket.Conn
 	name string
 	output chan Packet
+	delayHistory []time.Duration
+	delay time.Duration
 }
 
 type Game struct {
@@ -44,9 +50,16 @@ type Game struct {
 	*sync.Mutex
 }
 
+type Latency struct {
+	maxDelay time.Duration
+	counter int
+	*sync.Mutex
+}
+
 // Single game per server
 var game Game;
 var leaderboard map[string]int;
+var latency Latency;
 
 // Setup the game and file serving
 func main() {
@@ -57,7 +70,9 @@ func main() {
 		[BOARD_SIZE][BOARD_SIZE]int{},
 		&sync.Mutex{}}
 
-		leaderboard = make(map[string]int)
+	leaderboard = make(map[string]int)
+
+	latency = Latency{0, 0, &sync.Mutex{}}
 
 	fmt.Println("Game Started on port 7777")
 	http.Handle("/", http.FileServer(http.Dir("./public")))
@@ -111,6 +126,10 @@ func updateNonDrawer(packet Packet) {
 	}
 }
 
+func fairWait(currClient * Client) {
+	time.Sleep(latency.maxDelay - currClient.delay)
+}
+
 func handleSocketIn(ws *websocket.Conn) {
 	// setup connection with new user
 	// store their information in the game
@@ -140,7 +159,9 @@ func join(ws *websocket.Conn) *Client {
 	newClient := &Client{_id: game.maxId,
 		ws: ws,
 		name: "",
-		output: make(chan Packet, 3)}
+		output: make(chan Packet, 3),
+		delayHistory: make([]time.Duration, 0),
+		delay: 0}
 
 	// increment maxId
 	game.maxId++
@@ -157,7 +178,7 @@ func handleSocket(currClient * Client) {
 			err := websocket.JSON.Receive(currClient.ws, &packet)
 
 			if err != nil {
-				fmt.Println("Debug: websocket is closed")
+				fmt.Println("Debug: websocket is closed, err:", err)
 				return
 			}
 
@@ -168,6 +189,7 @@ func handleSocket(currClient * Client) {
 	for {
 		select {
 		case packet := <-currClient.output:
+			fairWait(currClient)
 			websocket.JSON.Send(currClient.ws, packet)
 		case packet := <-input:
 			switch packet.Ptype {
@@ -176,6 +198,7 @@ func handleSocket(currClient * Client) {
 			case "ack":
 				handleAck(currClient, packet)
 			case "guess":
+				fairWait(currClient)
 				handleGuess(currClient, packet)
 			case "draw":
 				handleDraw(currClient, packet)
@@ -200,7 +223,46 @@ func handleName(currClient * Client, packetIn Packet) {
 }
 
 func handleAck(currClient * Client, packetIn Packet) {
-	fmt.Println("ack recv")
+	// calculate this packet's delay
+	var delay time.Duration
+	delay = time.Millisecond * time.Duration(time.Now().UnixNano() / int64(time.Millisecond) - packetIn.Date)
+	fmt.Println("Debug: ack with delay:", delay)
+
+	// find this client's new average delay
+	currClient.delayHistory = append(currClient.delayHistory, delay)
+	fmt.Println("history:", currClient.delayHistory)
+	// remove old delay information
+	if (len(currClient.delayHistory) > DELAY_HISTORY_MAX) {
+		currClient.delayHistory = append(currClient.delayHistory[1:])
+	}
+	var totalDelay time.Duration
+	totalDelay = 0
+	for i := 0; i < len(currClient.delayHistory); i++ {
+		totalDelay += currClient.delayHistory[i]
+	}
+
+	currClient.delay = time.Duration(delay.Nanoseconds() / int64(len(currClient.delayHistory)))
+	// currClient.delay = totalDelay / (time.Millisecond * time.Duration(len(currClient.delayHistory)))
+	fmt.Println("ccd:", currClient.delay, "td:", totalDelay, "div:", time.Duration(len(currClient.delayHistory)))
+
+	latency.Lock()
+	defer latency.Unlock()
+
+	// every LATENCY_COUNTER_MAX acks recieved, reset the latency
+	// counter incase a highly delayed player quit
+	latency.counter = latency.counter + 1 % LATENCY_COUNTER_MAX
+	if latency.counter == 0 {
+		latency.maxDelay = 0
+	}
+
+	// if we're the slowest client, update the latency record
+	if latency.maxDelay < currClient.delay {
+		latency.maxDelay = currClient.delay
+	}
+
+	fmt.Println("Debug: ack with delay:", delay,
+		"my avg delay:", currClient.delay,
+		"worst delay", latency.maxDelay)
 }
 
 // If the guess is correct, update the guesser and
