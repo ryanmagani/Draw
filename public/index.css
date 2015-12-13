@@ -5,3 +5,7 @@ canvas {
 #mainContent {
 	text-align: center;
 }
+
+#leaderboard {
+	float: left;
+}
