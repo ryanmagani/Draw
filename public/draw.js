@@ -277,6 +277,7 @@
 		if (person) {
 			var score = person.getAttribute('score');
 			score++;
+			person.setAttribute('score', score);
 			person.innerHTML = user + ": " + score;
 		} else {
 			person = document.createElement("div");

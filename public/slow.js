@@ -275,12 +275,14 @@
 		if (person) {
 			var score = person.getAttribute('score');
 			score++;
+			person.setAttribute('score', score);
 			person.innerHTML = user + ": " + score;
 		} else {
 			person = document.createElement("div");
 			person.id = user;
 			person.setAttribute('score', 1);
 			person.innerHTML = user + ": " + 1;
+			leaderboard.appendChild(person);
 		}
 	}
 
