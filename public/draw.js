@@ -135,17 +135,7 @@
 		packet.Type = "ack";
 		packet.Date = Date.now();
 
-		if (isDrawer)
-		{
-			sendToServer(packet);
-		}
-
-		else
-		{
-			setTimeout(function() {
-				sendToServer(packet);	
-			}, delay);
-		}
+		sendToServer(packet);
 	}
 
 	function sendName()
