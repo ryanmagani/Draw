@@ -148,6 +148,14 @@
 		}
 	}
 
+	function setWord()
+	{
+		var packet = {};
+		packet.Type = "word";
+		packet.Data = prompt("Choose the next word");
+		sendToServer(packet);
+	}
+
 	/********************* SHARED FUNCTIONS *********************/
 
 
@@ -201,13 +209,18 @@
 			{
 				case "init":
 					isDrawer = parsed.IsDrawer;
-				    toggleView();
-				    // TODO: parse and dispaly leaderboard, manually add ourselves
-			        // since the server recvs our name afterwards
-				    if (!isDrawer) {
+					toggleView();
+					// TODO: parse and dispaly leaderboard, manually add ourselves
+					// since the server recvs our name afterwards
+					if (isDrawer)
+					{
+						setWord();
+					}
+					else
+					{
 						updateDraw(parsed);
 					}
-				    sendName();
+					sendName();
 					sendAck();
 					break;
 				case "badName":
@@ -253,7 +266,16 @@
 					updateDrawer(currentDrawer);
 					toggleCursor(false);
 					toggleView();
-					sendAck();
+
+					if (isDrawer)
+					{
+						setWord();
+					}
+
+					else
+					{
+						sendAck();
+					}
 					break;
 			}
 		}, delay);

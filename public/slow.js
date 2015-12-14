@@ -21,7 +21,7 @@
 	var prevMouseY = 0;
 
 	var isDrawer = false;
-	var currentDrawer = ""; // TODO: use this field
+	var currentDrawer = "";
 
 	var eraseCheck = document.getElementById('erase');
 	var clearBtn = document.getElementById('clearBtn');
@@ -56,6 +56,7 @@
 			guessPacket.Data = textbox.value;
 
 			sendToServer(guessPacket);
+			textbox.value = '';
 		}, artificialDelay);
 	}
 
@@ -136,6 +137,25 @@
 		}
 	}
 
+	function toggleCursor(value) {
+		if (!isDrawer) {
+			return;
+		}
+		eraseCheck.checked = value;
+		if (value) {
+			canvas.className = 'eraser';
+		} else {
+			canvas.className = '';
+		}
+	}
+
+	function setWord()
+	{
+		var packet = {};
+		packet.Type = "word";
+		packet.Data = prompt("Choose the next word");
+		sendToServer(packet);
+	}
 
 	/********************* SHARED FUNCTIONS *********************/
 
@@ -184,15 +204,22 @@
 			{
 				delay = parsed.Delay;
 			}
-	console.log(parsed);
+			console.log(parsed);
 			switch (parsed.Type)
 			{
 				case "init":
 					isDrawer = parsed.IsDrawer;
 					toggleView();
-					// TODO: fill the whole board
 					// TODO: parse and dispaly leaderboard, manually add ourselves
 					// since the server recvs our name afterwards
+					if (isDrawer)
+					{
+						setWord();
+					}
+					else
+					{
+						updateDraw(parsed);
+					}
 					sendName();
 					sendAck();
 					break;
@@ -203,18 +230,8 @@
 					break;
 
 				case "draw":
-					if (!isDrawer && parsed.Board != null && parsed.Board.length != 0)
-					{
-						saveColor = color;
-						color = parsed.Color;
-						for (var i = 0; i < parsed.Board.length; i++)
-						{
-							doDraw(parsed.Board[i].x, parsed.Board[i].y,
-								parsed.Board[i].prevX, parsed.Board[i].prevY);
-							// console.log("draw at: " + parsed.Board[i].x + " " +  parsed.Board[i].y);
-							// ctx.fillRect(parsed.Board[i].x, parsed.Board[i].y, 1, 1);
-						}
-						color = saveColor;
+				    if (!isDrawer) {
+						updateDraw(parsed);
 					}
 					sendAck();
 					break;
@@ -247,8 +264,18 @@
 					isDrawer = parsed.IsDrawer;
 					currentDrawer = parsed.Data;
 					updateDrawer(currentDrawer);
+					toggleCursor(false);
 					toggleView();
-					sendAck();
+
+					if (isDrawer)
+					{
+						setWord();
+					}
+
+					else
+					{
+						sendAck();
+					}
 					break;
 			}
 		}, artificialDelay);
@@ -256,6 +283,23 @@
 
 	// receive message from server
 	ws.onmessage = read;
+
+	function updateDraw(parsed)
+	{
+		if (!isDrawer && parsed.Board != null && parsed.Board.length != 0)
+		{
+			saveColor = color;
+			color = parsed.Color;
+			for (var i = 0; i < parsed.Board.length; i++)
+			{
+				doDraw(parsed.Board[i].x, parsed.Board[i].y,
+					parsed.Board[i].prevX, parsed.Board[i].prevY);
+				// console.log("draw at: " + parsed.Board[i].x + " " +  parsed.Board[i].y);
+				// ctx.fillRect(parsed.Board[i].x, parsed.Board[i].y, 1, 1);
+			}
+			color = saveColor;
+		}
+	}
 
 	// Clears board, called by server if we are a guesser
 	function clear()
@@ -359,6 +403,7 @@
 
 	eraseCheck.addEventListener('click', function(e) {
 		toggleEraser();
+		toggleCursor(eraseCheck.checked);
 	});
 
 }());

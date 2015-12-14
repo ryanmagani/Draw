@@ -48,6 +48,7 @@ type Game struct {
 	maxId uint64
 	// current word to guess
 	word string
+	wordValid bool
 	clients []*Client
 	drawerIndex int
 	//	canvas [BOARD_SIZE][BOARD_SIZE]int
@@ -68,8 +69,9 @@ var latency Latency;
 
 // Setup the game and file serving
 func main() {
-	game = Game {0,
-		"newGame",
+	game = Game{0,
+		"",
+		false,
 		make([]*Client, 0),
 		0,
 		make([]Point, 0),
@@ -88,10 +90,6 @@ func main() {
 // requires that game is locked
 func isDrawer(c *Client) bool {
 	return c == game.clients[game.drawerIndex]
-}
-
-func nextWord() string {
-	return "newWord"
 }
 
 // requires that game is locked
@@ -193,6 +191,8 @@ func handleSocket(currClient * Client) {
 				handleAck(currClient, packet)
 			case "guess":
 				handleGuess(currClient, packet)
+			case "word":
+				handleWordChange(currClient, packet)
 			case "draw":
 				handleDraw(currClient, packet)
 			case "clear":
@@ -261,6 +261,9 @@ func handleGuess(currClient * Client, packetIn Packet) {
 	game.Lock()
 	defer game.Unlock()
 
+	for !game.wordValid {
+	}
+
 	if isDrawer(currClient) {
 		fmt.Println("Debug: a drawer tried to guess")
 		return
@@ -269,7 +272,7 @@ func handleGuess(currClient * Client, packetIn Packet) {
 	fmt.Println("Debug: guesser guessing", packetIn.Data, "actual", game.word)
 
 	if game.word == packetIn.Data {
-		game.word = nextWord()
+		game.wordValid = false;
 		game.board = make([]Point, 0)
 		leaderboard[currClient.name] = leaderboard[currClient.name] + 1
 		packetOut := Packet{Ptype: "next",
@@ -293,6 +296,15 @@ func handleGuess(currClient * Client, packetIn Packet) {
 			}
 		}
 	}
+}
+
+func handleWordChange(currClient * Client, packetIn Packet) {
+	if !isDrawer(currClient) {
+		return
+	}
+
+	game.word = packetIn.Data
+	game.wordValid = true
 }
 
 // Send the drawing to all the clients and update
@@ -366,13 +378,13 @@ func handleQuit(currClient * Client) {
 	var packetOut Packet
 	if len(game.clients) == 0 {
 		game.drawerIndex = 0
-		game.word = nextWord()
+		game.wordValid = false
 		game.board = make([]Point, 0)
 		game.clients = make([]*Client, 0)
 		return
 	} else if isDrawer {
 		// the drawer just quit, clear current game state
-		game.word = nextWord()
+		game.wordValid = false
 		game.board = make([]Point, 0)
 
 		// otherwise, randomly assign a new drawer and
