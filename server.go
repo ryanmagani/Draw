@@ -7,8 +7,12 @@ import (
 	"sync"
 	"math/rand"
 	"time"
+	"os"
+	"strconv"
 )
 
+const PORT_MIN = 1024
+const PORT_MAX = 65535
 const BOARD_SIZE = 400
 const DELAY_HISTORY_MAX = 5
 const LATENCY_COUNTER_MAX = 10
@@ -69,6 +73,15 @@ var latency Latency;
 
 // Setup the game and file serving
 func main() {
+	port := 7777
+	if len(os.Args) > 1 {
+		parsePort, err := strconv.Atoi(os.Args[1])
+
+		if err == nil && parsePort >= PORT_MIN && parsePort <= PORT_MAX {
+			port = parsePort
+		}
+	}
+
 	game = Game{0,
 		"",
 		false,
@@ -81,10 +94,10 @@ func main() {
 
 	latency = Latency{0, 0, &sync.Mutex{}}
 
-	fmt.Println("Game Started on port 7777")
+	fmt.Println("Game Started on port", port)
 	http.Handle("/", http.FileServer(http.Dir("./public")))
 	http.Handle("/socket", websocket.Handler(handleSocketIn))
-	http.ListenAndServe(":7777", nil)
+	http.ListenAndServe(":" + strconv.Itoa(port), nil)
 }
 
 // requires that game is locked
