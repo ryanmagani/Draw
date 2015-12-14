@@ -132,6 +132,7 @@
 
 	/********************* SHARED FUNCTIONS *********************/
 
+
 	function sendAck()
 	{
 		var packet = {};
@@ -151,12 +152,19 @@
 
 	function doDraw(xCoord, yCoord, prevXCoord, prevYCoord)
 	{
-		ctx.strokeStyle = color;
-		ctx.beginPath();
-		ctx.moveTo(prevXCoord, prevYCoord)
+		if (color != "white") {
+			// drawing
+			ctx.strokeStyle = color;
+			ctx.beginPath();
+			ctx.moveTo(prevXCoord, prevYCoord);
 			ctx.lineTo(xCoord, yCoord);
-		ctx.stroke();
-		ctx.closePath();
+			ctx.stroke();
+			ctx.closePath();
+		} else {
+			// erasing
+			ctx.fillStyle = color;
+			ctx.fillRect(xCoord - 10, yCoord - 10, 20, 20);
+		}
 	}
 
 	// handle message from server
@@ -164,7 +172,7 @@
 	{
 		setTimeout(function() {
 
-		
+
 			var parsed = JSON.parse(event.data);
 			if (parsed.Delay)
 			{
