@@ -52,16 +52,16 @@
 	{
 		updateGuesses();
 
-		setTimeout(function() {
-			 if (isDrawer)
+		if (isDrawer)
 				return;
 
-			var guessPacket = {};
-			guessPacket.Type = "guess";
-			guessPacket.Data = textbox.value;
+		var guessPacket = {};
+		guessPacket.Type = "guess";
+		guessPacket.Data = textbox.value;
+		textbox.value = '';
 
+		setTimeout(function() {
 			sendToServer(guessPacket);
-			textbox.value = '';
 		}, artificialDelay);
 	}
 
@@ -223,6 +223,7 @@
 					toggleView();
 					// TODO: parse and dispaly leaderboard, manually add ourselves
 					// since the server recvs our name afterwards
+					updateLeaderboard(parsed.Leaderboard);
 					if (isDrawer)
 					{
 						currentDrawer = userName;
@@ -257,7 +258,7 @@
 					break;
 
 				case "drawerQuit":
-					removeFromLeaderboard(currentDrawer);
+					updateLeaderboard(parsed.Leaderboard);
 					currentDrawer = parsed.Data;
 					currentDrawerView.innerHTML = "Current Drawer is " + currentDrawer;
 					isDrawer = parsed.IsDrawer;
@@ -275,16 +276,16 @@
 					break;
 
 				case "otherQuit":
-					removeFromLeaderboard(parsed.Data);
+					updateLeaderboard(parsed.Leaderboard);
 					sendAck();
 					break;
 
 				case "next":
 					// TODO: update drawer username here, also update the
 					// new drawer's score
+					updateLeaderboard(parsed.Leaderboard);
 					currentWordView.innerHTML = null;
 					currentWordView.display = "none";
-					increaseScore(parsed.Data);
 					clear();
 					clearGuesses();
 					isDrawer = parsed.IsDrawer;
@@ -302,6 +303,9 @@
 					{
 						sendAck();
 					}
+					break;
+				case "leaderboard":
+					updateLeaderboard(parsed.Leaderboard);
 					break;
 			}
 		}, artificialDelay);
@@ -348,28 +352,10 @@
 		ws.close();
 	}
 
-	function removeFromLeaderboard(user)
-	{
-		var person = document.getElementById(user);
-		if (person) {
-			person.parentElement.removeChild(person);
-		}
-	}
-
-	function increaseScore(user)
-	{
-		var person = document.getElementById(user);
-		if (person) {
-			var score = person.getAttribute('score');
-			score++;
-			person.setAttribute('score', score);
-			person.innerHTML = user + ": " + score;
-		} else {
-			person = document.createElement("div");
-			person.id = user;
-			person.setAttribute('score', 1);
-			person.innerHTML = user + ": " + 1;
-			leaderboard.appendChild(person);
+	function updateLeaderboard(scores) {
+		leaderboard.innerHTML = '';
+		for (var user in scores) {
+			leaderboard.innerHTML = leaderboard.innerHTML + '<div>' + user + ": " + scores[user] + '</div>';
 		}
 	}
 
