@@ -94,7 +94,13 @@
 
 		if (mouseX > 0 && mouseX < 400 && mouseY > 0 && mouseY < 400) {
 			doDraw(mouseX, mouseY, prevMouseX, prevMouseY);
-			drawnPoints.push({'X' : mouseX, 'Y' : mouseY});
+			drawnPoints.push({
+				'PrevX' : prevMouseX,
+				'PrevY' : prevMouseY,
+				'X' : mouseX,
+				'Y' : mouseY
+			});
+
 		}
 	}
 
@@ -138,7 +144,7 @@
 		var packet = {};
 		packet.Type = "ack";
 		packet.Date = Date.now() - artificialDelay;
-		sendToServer(packet);	
+		sendToServer(packet);
 	}
 
 	function sendName()
@@ -151,12 +157,20 @@
 
 	function doDraw(xCoord, yCoord, prevXCoord, prevYCoord)
 	{
-		ctx.strokeStyle = color;
-		ctx.beginPath();
-		ctx.moveTo(prevXCoord, prevYCoord)
+		if (color != "white") {
+			// drawing
+			ctx.strokeStyle = color;
+			ctx.beginPath();
+			ctx.moveTo(prevXCoord, prevYCoord);
 			ctx.lineTo(xCoord, yCoord);
-		ctx.stroke();
-		ctx.closePath();
+			ctx.stroke();
+			ctx.closePath();
+		} else {
+			// erasing
+			ctx.fillStyle = color;
+			ctx.fillRect(xCoord - 4, yCoord - 4, 8, 8);
+		}
+
 	}
 
 	// handle message from server
@@ -164,7 +178,7 @@
 	{
 		setTimeout(function() {
 
-		
+
 			var parsed = JSON.parse(event.data);
 			if (parsed.Delay)
 			{
@@ -193,10 +207,10 @@
 					{
 						saveColor = color;
 						color = parsed.Color;
-						for (var i = 1; i < parsed.Board.length; i++)
+						for (var i = 0; i < parsed.Board.length; i++)
 						{
 							doDraw(parsed.Board[i].x, parsed.Board[i].y,
-								parsed.Board[i-1].x, parsed.Board[i-1].y);
+								parsed.Board[i].prevX, parsed.Board[i].prevY);
 							// console.log("draw at: " + parsed.Board[i].x + " " +  parsed.Board[i].y);
 							// ctx.fillRect(parsed.Board[i].x, parsed.Board[i].y, 1, 1);
 						}

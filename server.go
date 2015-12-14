@@ -17,6 +17,8 @@ const CHAN_SIZE = 10
 type Point struct {
 	X int `json:"x"`
 	Y int `json:"y"`
+	PrevX int `json:"prevX"`
+	PrevY int `json:"prevY"`
 }
 
 // Golang will NOT send out data whose
@@ -97,7 +99,8 @@ func getBoard() []Point {
 	for i := 0; i < BOARD_SIZE; i++ {
 		for j := 0; j < BOARD_SIZE; j++ {
 			if game.canvas[i][j] == 1 {
-				drawnPoints = append(drawnPoints, Point{i,j})
+				//TODO: fix this
+//				drawnPoints = append(drawnPoints, Point{i,j})
 			}
 		}
 	}
@@ -314,9 +317,9 @@ func handleDraw(currClient * Client, packetIn Packet) {
 	fmt.Println("Debug: drawer drawing")
 
 	packetOut := Packet{Ptype: "draw",
-						Board: packetIn.Board,
-						Color: packetIn.Color,
-						IsDrawer: false}
+		Board: packetIn.Board,
+		Color: packetIn.Color,
+		IsDrawer: false}
 
 	updateNonDrawer(packetOut)
 
@@ -336,8 +339,8 @@ func handleClear(currClient * Client) {
 	fmt.Println("drawer clearing")
 
 	packetOut := Packet{Ptype: "clear",
-						Board: nil,
-						IsDrawer: false}
+		Board: nil,
+		IsDrawer: false}
 
 	updateNonDrawer(packetOut)
 }
@@ -395,7 +398,7 @@ func handleQuit(currClient * Client) {
 		}
 
 		packetOut = Packet{Ptype: "otherQuit",
-					Board: nil, // TODO: this does NOT imply that 
+					Board: nil, // TODO: this does NOT imply that
 								// the board should be cleared,
 								// what should we do here?
 					IsDrawer: false,
