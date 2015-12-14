@@ -32,7 +32,9 @@
 	var drawerView = document.getElementById('drawerView');
 	var guesserView = document.getElementById('guesserView');
 
-	var guesses = document.getElementById("guesses");
+	var guesses = document.getElementById('guesses');
+
+	var leaderboard = document.getElementById('leaderboard');
 
 	var ws = new WebSocket("ws://localhost:7777/socket");
 
@@ -52,6 +54,7 @@
 			guessPacket.Data = textbox.value;
 
 			sendToServer(guessPacket);
+			textbox.value = '';
 		}, delay);
 	}
 
@@ -232,6 +235,7 @@
 				case "next":
 					// TODO: update drawer username here, also update the
 					// new drawer's score
+					increaseScore(parsed.Data);
 					clear();
 					clearGuesses();
 					isDrawer = parsed.IsDrawer;
@@ -269,7 +273,27 @@
 
 	function removeFromLeaderboard(user)
 	{
-		console.log("TODO: fill me in");
+		var person = document.getElementById(user);
+		if (person) {
+			person.parentElement.removeChild(person);
+		}
+	}
+
+	function increaseScore(user)
+	{
+		var person = document.getElementById(user);
+		if (person) {
+			var score = person.getAttribute('score');
+			score++;
+			person.setAttribute('score', score);
+			person.innerHTML = user + ": " + score;
+		} else {
+			person = document.createElement("div");
+			person.id = user;
+			person.setAttribute('score', 1);
+			person.innerHTML = user + ": " + 1;
+			leaderboard.appendChild(person);
+		}
 	}
 
 	// send data to server
@@ -310,7 +334,6 @@
 	textbox.addEventListener('keypress', function(e) {
 		if (e.keyCode === 13) {
 			guess();
-			textbox.value = '';
 		}
 	});
 
