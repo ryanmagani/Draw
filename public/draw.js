@@ -43,7 +43,7 @@
 	var currentDrawerView = document.getElementById('currentDrawer');
 	var currentWordView = document.getElementById('currentWord');
 
-	var ws = new WebSocket("ws://localhost:7777/socket");
+	var ws = new WebSocket("ws://" + window.location.host + "/socket");
 
 	/********************* GUESSER FUNCTIONS *********************/
 
