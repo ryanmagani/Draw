@@ -224,7 +224,7 @@ func handleName(currClient * Client, packetIn Packet) {
 		Leaderboard: getLeaderboard(),
 		IsDrawer: isDrawer(currClient)}
 
-	websocket.JSON.Send(currClient.ws, packetOut)
+	updateAllChan(packetOut)
 	// TODO: safetey checks
 }
 
