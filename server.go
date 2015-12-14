@@ -218,6 +218,13 @@ func handleName(currClient * Client, packetIn Packet) {
 	if !inMap {
 		leaderboard[currClient.name] = 0
 	}
+
+	packetOut := Packet{Ptype: "leaderboard",
+		Board: nil,
+		Leaderboard: getLeaderboard(),
+		IsDrawer: isDrawer(currClient)}
+
+	websocket.JSON.Send(currClient.ws, packetOut)
 	// TODO: safetey checks
 }
 
