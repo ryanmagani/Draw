@@ -136,6 +136,17 @@
 		}
 	}
 
+	function toggleCursor(value) {
+		if (!isDrawer) {
+			return;
+		}
+		eraseCheck.checked = value;
+		if (value) {
+			canvas.className = 'eraser';
+		} else {
+			canvas.className = '';
+		}
+	}
 
 	/********************* SHARED FUNCTIONS *********************/
 
@@ -248,6 +259,7 @@
 					isDrawer = parsed.IsDrawer;
 					currentDrawer = parsed.Data;
 					updateDrawer(currentDrawer);
+					toggleCursor(false);
 					toggleView();
 					sendAck();
 					break;
@@ -359,6 +371,7 @@
 
 	eraseCheck.addEventListener('click', function(e) {
 		toggleEraser();
+		toggleCursor(eraseCheck.checked);
 	});
 
 }());

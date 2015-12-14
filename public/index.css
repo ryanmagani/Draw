@@ -9,3 +9,7 @@ canvas {
 #leaderboard {
 	float: left;
 }
+
+.eraser {
+	cursor: url('eraser.png'), auto;
+}
