@@ -1,6 +1,10 @@
 (function()
 {
-	var userName = prompt("Enter your username");
+	var userName = null;
+	while (!userName)
+	{
+		userName = prompt("Enter your username");
+	}
 
 	var artificialDelay = 0;
 	var delay = 0;

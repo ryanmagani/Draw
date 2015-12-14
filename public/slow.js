@@ -1,6 +1,10 @@
 (function()
 {
-	var userName = prompt("Enter your username");
+	var userName = null;
+	while (!userName)
+	{
+		userName = prompt("Enter your username");
+	}
 
 	var artificialDelay = 2000;
 	var delay = 0;
@@ -154,6 +158,7 @@
 	{
 		var packet = {};
 		packet.Type = "word";
+		packet.Data = null;
 		while (!packet.Data)
 		{
 			packet.Data = prompt("Choose the next word");
@@ -405,7 +410,6 @@
 	textbox.addEventListener('keypress', function(e) {
 		if (e.keyCode === 13) {
 			guess();
-			textbox.value = '';
 		}
 	});
 
