@@ -50,7 +50,8 @@ type Game struct {
 	word string
 	clients []*Client
 	drawerIndex int
-	canvas [BOARD_SIZE][BOARD_SIZE]int
+	//	canvas [BOARD_SIZE][BOARD_SIZE]int
+	board []Point
 	*sync.Mutex
 }
 
@@ -71,7 +72,7 @@ func main() {
 		"newGame",
 		make([]*Client, 0),
 		0,
-		[BOARD_SIZE][BOARD_SIZE]int{},
+		make([]Point, 0),
 		&sync.Mutex{}}
 
 	leaderboard = make(map[string]int)
@@ -95,16 +96,7 @@ func nextWord() string {
 
 // requires that game is locked
 func getBoard() []Point {
-	drawnPoints := make([]Point, 0)
-	for i := 0; i < BOARD_SIZE; i++ {
-		for j := 0; j < BOARD_SIZE; j++ {
-			if game.canvas[i][j] == 1 {
-				//TODO: fix this
-//				drawnPoints = append(drawnPoints, Point{i,j})
-			}
-		}
-	}
-	return drawnPoints
+	return game.board;
 }
 
 func getLeaderboard() map[string]int {
@@ -278,7 +270,7 @@ func handleGuess(currClient * Client, packetIn Packet) {
 
 	if game.word == packetIn.Data {
 		game.word = nextWord()
-		game.canvas = [BOARD_SIZE][BOARD_SIZE]int{}
+		game.board = make([]Point, 0)
 		leaderboard[currClient.name] = leaderboard[currClient.name] + 1
 		packetOut := Packet{Ptype: "next",
 					Board: nil,
@@ -323,8 +315,9 @@ func handleDraw(currClient * Client, packetIn Packet) {
 
 	updateNonDrawer(packetOut)
 
-	// TODO: update internal reprsentation, no point
-	// doing this right now if we're going to change it
+	for i := 0; i < len(packetIn.Board); i++ {
+		game.board = append(game.board, packetIn.Board[i])
+	}
 }
 
 func handleClear(currClient * Client) {
@@ -372,13 +365,13 @@ func handleQuit(currClient * Client) {
 	if len(game.clients) == 0 {
 		game.drawerIndex = 0
 		game.word = nextWord()
-		game.canvas = [BOARD_SIZE][BOARD_SIZE]int{}
+		game.board = make([]Point, 0)
 		game.clients = make([]*Client, 0)
 		return
 	} else if isDrawer {
 		// the drawer just quit, clear current game state
 		game.word = nextWord()
-		game.canvas = [BOARD_SIZE][BOARD_SIZE]int{}
+		game.board = make([]Point, 0)
 
 		// otherwise, randomly assign a new drawer and
 		// set up a new round
