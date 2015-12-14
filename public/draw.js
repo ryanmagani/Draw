@@ -37,6 +37,7 @@
 	var leaderboard = document.getElementById('leaderboard');
 
 	var currentDrawerView = document.getElementById('currentDrawer');
+	var currentWordView = document.getElementById('currentWord');
 
 	var ws = new WebSocket("ws://localhost:7777/socket");
 
@@ -152,7 +153,13 @@
 	{
 		var packet = {};
 		packet.Type = "word";
-		packet.Data = prompt("Choose the next word");
+		packet.Data = null;
+		while (!packet.Data)
+		{
+			packet.Data = prompt("Choose the next word");
+		}
+		currentWordView.innerHTML = "The word is: " + packet.Data;
+		currentWordView.display = "block";
 		sendToServer(packet);
 	}
 
@@ -247,7 +254,15 @@
 					isDrawer = parsed.IsDrawer;
 					toggleView();
 					clear();
-					sendAck();
+
+					if (isDrawer)
+					{
+						setWord();
+					}
+					else
+					{
+						sendAck();
+					}
 					break;
 
 				case "otherQuit":
@@ -258,6 +273,8 @@
 				case "next":
 					// TODO: update drawer username here, also update the
 					// new drawer's score
+					currentWordView.innerHTML = null;
+					currentWordView.display = "none";
 					increaseScore(parsed.Data);
 					clear();
 					clearGuesses();
