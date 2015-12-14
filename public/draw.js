@@ -225,12 +225,16 @@
 					// since the server recvs our name afterwards
 					if (isDrawer)
 					{
+						currentDrawer = userName;
 						setWord();
 					}
 					else
 					{
+						currentDrawer = parsed.Data;
 						updateDraw(parsed);
 					}
+
+					currentDrawerView.innerHTML = "Current Drawer is " + currentDrawer;
 					sendName();
 					sendAck();
 					break;
@@ -255,6 +259,7 @@
 				case "drawerQuit":
 					removeFromLeaderboard(currentDrawer);
 					currentDrawer = parsed.Data;
+					currentDrawerView.innerHTML = "Current Drawer is " + currentDrawer;
 					isDrawer = parsed.IsDrawer;
 					toggleView();
 					clear();

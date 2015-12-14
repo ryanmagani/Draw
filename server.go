@@ -147,6 +147,12 @@ func join(ws *websocket.Conn) *Client {
 		Leaderboard: getLeaderboard(),
 		IsDrawer: isDrawer}
 
+	if !isDrawer {
+		for game.clients[game.drawerIndex].name == "" {
+		}
+		pkt.Data = game.clients[game.drawerIndex].name
+	}
+
 	websocket.JSON.Send(ws, pkt)
 
 	newClient := &Client{_id: game.maxId,
@@ -278,6 +284,7 @@ func handleGuess(currClient * Client, packetIn Packet) {
 		packetOut := Packet{Ptype: "next",
 					Board: nil,
 					IsDrawer: false,
+					Leaderboard: getLeaderboard(),
 					Data: currClient.name}
 
 		for i := 0; i < len(game.clients); i++ {
@@ -361,6 +368,8 @@ func handleQuit(currClient * Client) {
 	game.Lock()
 	defer game.Unlock()
 
+	delete(leaderboard, currClient.name)
+
 	currClient.ws.Close()
 
 	isDrawer := isDrawer(currClient)
@@ -394,6 +403,7 @@ func handleQuit(currClient * Client) {
 		packetOut = Packet{Ptype: "drawerQuit",
 					Board: nil,
 					IsDrawer: false,
+					Leaderboard: getLeaderboard(),
 					Data: game.clients[game.drawerIndex].name}
 	} else {
 		// otherwise, tell everyone about the quit anyways so
@@ -409,6 +419,7 @@ func handleQuit(currClient * Client) {
 								// the board should be cleared,
 								// what should we do here?
 					IsDrawer: false,
+					Leaderboard: getLeaderboard(),
 					Data: currClient.name}
 	}
 
