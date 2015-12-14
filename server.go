@@ -335,6 +335,8 @@ func handleClear(currClient * Client) {
 		Board: nil,
 		IsDrawer: false}
 
+	game.board = make([]Point, 0)
+
 	updateNonDrawer(packetOut)
 }
 

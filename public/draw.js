@@ -196,16 +196,18 @@
 			{
 				delay = parsed.Delay;
 			}
-	console.log(parsed);
+			console.log(parsed);
 			switch (parsed.Type)
 			{
 				case "init":
 					isDrawer = parsed.IsDrawer;
-					toggleView();
-					// TODO: fill the whole board
-					// TODO: parse and dispaly leaderboard, manually add ourselves
-					// since the server recvs our name afterwards
-					sendName();
+				    toggleView();
+				    // TODO: parse and dispaly leaderboard, manually add ourselves
+			        // since the server recvs our name afterwards
+				    if (!isDrawer) {
+						updateDraw(parsed);
+					}
+				    sendName();
 					sendAck();
 					break;
 				case "badName":
@@ -215,18 +217,8 @@
 					break;
 
 				case "draw":
-					if (!isDrawer && parsed.Board != null && parsed.Board.length != 0)
-					{
-						saveColor = color;
-						color = parsed.Color;
-						for (var i = 0; i < parsed.Board.length; i++)
-						{
-							doDraw(parsed.Board[i].x, parsed.Board[i].y,
-								parsed.Board[i].prevX, parsed.Board[i].prevY);
-							// console.log("draw at: " + parsed.Board[i].x + " " +  parsed.Board[i].y);
-							// ctx.fillRect(parsed.Board[i].x, parsed.Board[i].y, 1, 1);
-						}
-						color = saveColor;
+				    if (!isDrawer) {
+						updateDraw(parsed);
 					}
 					sendAck();
 					break;
@@ -269,6 +261,23 @@
 
 	// receive message from server
 	ws.onmessage = read;
+
+	function updateDraw(parsed)
+	{
+		if (!isDrawer && parsed.Board != null && parsed.Board.length != 0)
+		{
+			saveColor = color;
+			color = parsed.Color;
+			for (var i = 0; i < parsed.Board.length; i++)
+			{
+				doDraw(parsed.Board[i].x, parsed.Board[i].y,
+					parsed.Board[i].prevX, parsed.Board[i].prevY);
+				// console.log("draw at: " + parsed.Board[i].x + " " +  parsed.Board[i].y);
+				// ctx.fillRect(parsed.Board[i].x, parsed.Board[i].y, 1, 1);
+			}
+			color = saveColor;
+		}
+	}
 
 	// Clears board, called by server if we are a guesser
 	function clear()
