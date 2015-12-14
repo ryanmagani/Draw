@@ -149,6 +149,7 @@ func join(ws *websocket.Conn) *Client {
 
 	if !isDrawer {
 		for game.clients[game.drawerIndex].name == "" {
+			time.Sleep(10 * time.Millisecond)
 		}
 		pkt.Data = game.clients[game.drawerIndex].name
 	}
@@ -275,6 +276,7 @@ func handleGuess(currClient * Client, packetIn Packet) {
 	defer game.Unlock()
 
 	for !game.wordValid {
+		time.Sleep(10 * time.Millisecond)
 	}
 
 	if isDrawer(currClient) {
