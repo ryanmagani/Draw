@@ -36,6 +36,8 @@
 
 	var leaderboard = document.getElementById('leaderboard');
 
+	var currentDrawerView = document.getElementById('currentDrawer');
+
 	var ws = new WebSocket("ws://localhost:7777/socket");
 
 	/********************* GUESSER FUNCTIONS *********************/
@@ -229,7 +231,8 @@
 					clear();
 					clearGuesses();
 					isDrawer = parsed.IsDrawer;
-					drawer = parsed.Data;
+					currentDrawer = parsed.Data;
+					updateDrawer(currentDrawer);
 					toggleView();
 					sendAck();
 					break;
@@ -284,6 +287,10 @@
 			person.innerHTML = user + ": " + 1;
 			leaderboard.appendChild(person);
 		}
+	}
+
+	function updateDrawer(user) {
+		currentDrawerView.innerHTML = "Current Drawer is " + user;
 	}
 
 	// send data to server
