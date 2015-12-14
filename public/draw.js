@@ -166,14 +166,11 @@
 			ctx.moveTo(prevXCoord, prevYCoord);
 			ctx.lineTo(xCoord, yCoord);
 			ctx.stroke();
-//			ctx.closePath();
-
-/*			ctx.fillStyle = color;
-			ctx.fillRect(xCoord - 3, yCoord - 3, 6, 6);*/
+			ctx.closePath();
 		} else {
 			// erasing
 			ctx.fillStyle = color;
-			ctx.fillRect(xCoord - 10, yCoord - 10, 20, 20);
+			ctx.fillRect(xCoord - 4, yCoord - 4, 8, 8);
 		}
 	}
 
