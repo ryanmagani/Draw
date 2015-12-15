@@ -42,6 +42,7 @@
 
 	var currentDrawerView = document.getElementById('currentDrawer');
 	var currentWordView = document.getElementById('currentWord');
+	var messageView = document.getElementById('msg');
 
 	var ws = new WebSocket("ws://" + window.location.host + "/socket");
 
@@ -168,6 +169,16 @@
 
 	/********************* SHARED FUNCTIONS *********************/
 
+	function displayMessage(msg)
+	{
+		messageView.innerHTML = msg
+		messageView.display = "block";
+		setTimeout(function()
+		{
+			messageView.innerHTML = null;
+			messageView.display = "none";
+		}, 3500);
+	}
 
 	function sendAck()
 	{
@@ -237,6 +248,7 @@
 					currentDrawerView.innerHTML = "Current Drawer is " + currentDrawer;
 					sendName();
 					sendAck();
+					displayMessage("Welcome " + userName + "!");
 					break;
 				case "badName":
 					userName = prompt("Enter your username");
@@ -258,6 +270,7 @@
 
 				case "drawerQuit":
 					updateLeaderboard(parsed.Leaderboard);
+					var oldDrawer = currentDrawer;
 					currentDrawer = parsed.Data;
 					currentDrawerView.innerHTML = "Current Drawer is " + currentDrawer;
 					isDrawer = parsed.IsDrawer;
@@ -266,17 +279,22 @@
 
 					if (isDrawer)
 					{
+						displayMessage(oldDrawer +
+							" has quit, you are now drawing! The last word was " + parsed.LastWord);
 						setWord();
 					}
 					else
 					{
 						sendAck();
+						displayMessage(oldDrawer + " has quit, " + currentDrawer +
+							" is now drawing. The last word was " + parsed.LastWord);
 					}
 					break;
 
 				case "otherQuit":
 					updateLeaderboard(parsed.Leaderboard);
 					sendAck();
+					displayMessage(parsed.Data + " has quit");
 					break;
 
 				case "next":
@@ -295,12 +313,15 @@
 
 					if (isDrawer)
 					{
+						displayMessage("Correct guess! You are now the drawer");
 						setWord();
 					}
 
 					else
 					{
 						sendAck();
+						displayMessage("The last word was: " + parsed.LastWord +
+							". " + currentDrawer + " is now drawing");
 					}
 					break;
 				case "leaderboard":

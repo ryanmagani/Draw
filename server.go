@@ -36,6 +36,7 @@ type Packet struct {
 	Data string `json:"Data",omitempty`
 	Date int64 `json:"Date",omitempty`
 	Delay int64 `json:"Delay",omitempty`
+	LastWord string `json:"LastWord",omitempty`
 }
 
 type Client struct {
@@ -307,7 +308,8 @@ func handleGuess(currClient * Client, packetIn Packet) {
 					Board: nil,
 					IsDrawer: false,
 					Leaderboard: getLeaderboard(),
-					Data: currClient.name}
+					Data: currClient.name,
+					LastWord: packetIn.Data}
 
 		for i := 0; i < len(game.clients); i++ {
 			if game.clients[i] == currClient {
@@ -426,7 +428,8 @@ func handleQuit(currClient * Client) {
 					Board: nil,
 					IsDrawer: false,
 					Leaderboard: getLeaderboard(),
-					Data: game.clients[game.drawerIndex].name}
+					Data: game.clients[game.drawerIndex].name,
+					LastWord: game.word}
 	} else {
 		// otherwise, tell everyone about the quit anyways so
 		// any leaderboards, etc. can be updated
