@@ -250,12 +250,12 @@
 					currentDrawerView.innerHTML = "Current Drawer is " + currentDrawer;
 					sendName();
 					sendAck();
+					displayMessage("Welcome " + userName + "!");
 					break;
 				case "badName":
 					userName = prompt("Enter your username");
 					sendName();
 					sendAck();
-					displayMessage("Welcome " + userName + "!");
 					break;
 
 				case "draw":
@@ -272,6 +272,7 @@
 
 				case "drawerQuit":
 					updateLeaderboard(parsed.Leaderboard);
+					var oldDrawer = currentDrawer;
 					currentDrawer = parsed.Data;
 					currentDrawerView.innerHTML = "Current Drawer is " + currentDrawer;
 					isDrawer = parsed.IsDrawer;
