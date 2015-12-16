@@ -217,6 +217,7 @@
 	// handle message from server
 	var read = function(event)
 	{
+		console.log("DELAY: " + delay);
 		setTimeout(function() {
 
 

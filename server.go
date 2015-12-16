@@ -47,6 +47,7 @@ type Client struct {
 	output chan Packet
 	delayHistory []int64
 	delay int64
+	lastSendTime int64
 }
 
 type Game struct {
@@ -179,7 +180,8 @@ func join(ws *websocket.Conn) *Client {
 		name: "",
 		output: make(chan Packet, CHAN_SIZE),
 		delayHistory: make([]int64, 0),
-		delay: 0}
+		delay: 0,
+		lastSendTime: time.Now().UnixNano() / int64(time.Millisecond)}
 
 	// increment maxId
 	game.maxId++
@@ -208,6 +210,7 @@ func handleSocket(currClient * Client) {
 		select {
 		case packet := <-currClient.output:
 			websocket.JSON.Send(currClient.ws, packet)
+			currClient.lastSendTime = time.Now().UnixNano() / int64(time.Millisecond)
 		case packet := <-input:
 			switch packet.Ptype {
 			case "name":
@@ -250,7 +253,7 @@ func handleName(currClient * Client, packetIn Packet) {
 func handleAck(currClient * Client, packetIn Packet) {
 	// calculate this packet's delay
 	var delay int64
-	delay = time.Now().UnixNano() / int64(time.Millisecond) - packetIn.Date
+	delay = ((time.Now().UnixNano() / int64(time.Millisecond)) - currClient.lastSendTime)
 
 	// find this client's new average delay
 	currClient.delayHistory = append(currClient.delayHistory, delay)
