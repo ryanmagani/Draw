@@ -13,5 +13,5 @@ canvas {
 }
 
 .eraser {
-	cursor: url('eraser.png'), auto;
+	cursor: url('eraser.png') 4 4, auto;
 }
