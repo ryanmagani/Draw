@@ -9,6 +9,7 @@ import (
 	"time"
 	"os"
 	"strconv"
+	"strings"
 )
 
 const PORT_MIN = 1024
@@ -147,18 +148,13 @@ func handleSocketIn(ws *websocket.Conn) {
 
 func join(ws *websocket.Conn) *Client {
 	game.Lock()
-	defer game.Unlock()
-
 	isDrawer := false
 	if (len(game.clients) == 0) {
 		isDrawer = true
 	}
-
-	fmt.Println("Debug: client joined, isDrawer:", isDrawer)
+	game.Unlock()
 
 	pkt := Packet{Ptype: "init",
-		Board: getBoard(),
-		Leaderboard: getLeaderboard(),
 		IsDrawer: isDrawer}
 
 	if !isDrawer {
@@ -168,6 +164,14 @@ func join(ws *websocket.Conn) *Client {
 		pkt.Data = game.clients[game.drawerIndex].name
 	}
 
+	game.Lock()
+	defer game.Unlock()
+
+	fmt.Println("Debug: client joined, isDrawer:", isDrawer)
+
+	pkt.Board = getBoard()
+	pkt.Leaderboard = getLeaderboard()
+	
 	websocket.JSON.Send(ws, pkt)
 
 	newClient := &Client{_id: game.maxId,
@@ -300,7 +304,7 @@ func handleGuess(currClient * Client, packetIn Packet) {
 
 	fmt.Println("Debug: guesser guessing", packetIn.Data, "actual", game.word)
 
-	if game.word == packetIn.Data {
+	if strings.ToLower(game.word) == strings.ToLower(packetIn.Data) {
 		game.wordValid = false;
 		game.board = make([]Point, 0)
 		leaderboard[currClient.name] = leaderboard[currClient.name] + 1
