@@ -24,6 +24,7 @@ type Point struct {
 	Y int `json:"y"`
 	PrevX int `json:"prevX"`
 	PrevY int `json:"prevY"`
+	Color string `json:"color"`
 }
 
 // Golang will NOT send out data whose
@@ -32,7 +33,6 @@ type Packet struct {
 	Ptype string `json:"Type"`
 	Board []Point `json:"Board"`
 	Leaderboard map[string]int `json:"Leaderboard",omitempty`
-	Color string `json:"Color",omitempty`
 	IsDrawer bool `json:"IsDrawer",omitempty`
 	Data string `json:"Data",omitempty`
 	Date int64 `json:"Date",omitempty`
@@ -357,7 +357,6 @@ func handleDraw(currClient * Client, packetIn Packet) {
 
 	packetOut := Packet{Ptype: "draw",
 		Board: packetIn.Board,
-		Color: packetIn.Color,
 		IsDrawer: false}
 
 	updateNonDrawer(packetOut)

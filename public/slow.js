@@ -105,7 +105,8 @@
 				'PrevX' : prevMouseX,
 				'PrevY' : prevMouseY,
 				'X' : mouseX,
-				'Y' : mouseY
+				'Y' : mouseY,
+				'Color' : color
 			});
 
 		}
@@ -345,7 +346,7 @@
 			{
 				doDraw(parsed.Board[i].x, parsed.Board[i].y,
 					parsed.Board[i].prevX, parsed.Board[i].prevY,
-					parsed.Color);
+					parsed.Board[i].color);
 				// console.log("draw at: " + parsed.Board[i].x + " " +  parsed.Board[i].y);
 				// ctx.fillRect(parsed.Board[i].x, parsed.Board[i].y, 1, 1);
 			}
