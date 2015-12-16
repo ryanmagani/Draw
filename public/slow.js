@@ -171,7 +171,7 @@
 
 	/********************* SHARED FUNCTIONS *********************/
 
-	function displayMessage()
+	function displayMessage(msg)
 	{
 		messageView.innerHTML = msg
 		messageView.display = "block";
