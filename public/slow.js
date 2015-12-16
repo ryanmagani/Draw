@@ -317,6 +317,7 @@
 					{
 						displayMessage("Correct guess! You are now the drawer");
 						setWord();
+						color = "black";
 					}
 
 					else
