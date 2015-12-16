@@ -266,6 +266,10 @@ func handleAck(currClient * Client, packetIn Packet) {
 
 	currClient.delay = totalDelay / int64(len(currClient.delayHistory))
 
+	if currClient.delay < 0 {
+		currClient.delay = 0
+	}
+
 	latency.Lock()
 	defer latency.Unlock()
 
