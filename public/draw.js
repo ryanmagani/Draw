@@ -98,7 +98,7 @@
 			return;
 
 		if (mouseX > 0 && mouseX < 400 && mouseY > 0 && mouseY < 400) {
-			doDraw(mouseX, mouseY, prevMouseX, prevMouseY);
+			doDraw(mouseX, mouseY, prevMouseX, prevMouseY, color);
 			drawnPoints.push({
 				'PrevX' : prevMouseX,
 				'PrevY' : prevMouseY,
@@ -196,11 +196,11 @@
 		sendToServer(packet);
 	}
 
-	function doDraw(xCoord, yCoord, prevXCoord, prevYCoord)
+	function doDraw(xCoord, yCoord, prevXCoord, prevYCoord, currColor)
 	{
-		if (color != "white") {
+		if (currColor != "white") {
 			// drawing
-			ctx.strokeStyle = color;
+			ctx.strokeStyle = currColor;
 			ctx.beginPath();
 			ctx.moveTo(prevXCoord, prevYCoord);
 			ctx.lineTo(xCoord, yCoord);
@@ -208,7 +208,7 @@
 			ctx.closePath();
 		} else {
 			// erasing
-			ctx.fillStyle = color;
+			ctx.fillStyle = currColor;
 			ctx.fillRect(xCoord - 4, yCoord - 4, 8, 8);
 		}
 	}
@@ -342,7 +342,8 @@
 			for (var i = 0; i < parsed.Board.length; i++)
 			{
 				doDraw(parsed.Board[i].x, parsed.Board[i].y,
-					parsed.Board[i].prevX, parsed.Board[i].prevY);
+					parsed.Board[i].prevX, parsed.Board[i].prevY,
+					parsed.Color);
 				// console.log("draw at: " + parsed.Board[i].x + " " +  parsed.Board[i].y);
 				// ctx.fillRect(parsed.Board[i].x, parsed.Board[i].y, 1, 1);
 			}
