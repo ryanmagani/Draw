@@ -286,12 +286,12 @@ func handleAck(currClient * Client, packetIn Packet) {
 // alert all clients of a change in word, otherwise,
 // do nothing
 func handleGuess(currClient * Client, packetIn Packet) {
-	game.Lock()
-	defer game.Unlock()
-
 	for !game.wordValid {
 		time.Sleep(10 * time.Millisecond)
 	}
+
+	game.Lock()
+	defer game.Unlock()
 
 	if isDrawer(currClient) {
 		fmt.Println("Debug: a drawer tried to guess")
